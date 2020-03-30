@@ -3,28 +3,23 @@ from openmdao.api import ExplicitComponent
 
 
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-n=100
+# n=300
 
-t = np.linspace(0, 10, n)
+# t = np.linspace(0, 300, n)
 
-default_val = 0.4
-signal = np.linspace(0.4, 0.0, n)**1.5
-t_trigger = 5
+# default_val = 0.6
+# signal = np.linspace(0.0, 0.6, n)
+# t_trigger = 10
 
-a = 30
+# a = 10
 
-y = 1 / (1 + np.exp(-a*(t - t_trigger)))
+# y = 1 / (1 + np.exp(-a*(t - t_trigger)))
 
-fig = plt.figure(figsize=(10, 5))
-plt.title("Time-based trigger of $\\sigma$ at t = 5")
-plt.plot(signal*y + (1 - y) * default_val, label="$\\theta$", linewidth=5)
-plt.plot(signal, label="$\\sigma$")
-plt.plot(n * [default_val], label="$\\beta$")
-plt.legend()
-plt.show()
-quit()
+# plt.plot(signal*y + (1 - y) * default_val)
+# plt.show()
+# quit()
 
 class EventTrigger(ExplicitComponent):
     """ Reduces signal?
@@ -52,7 +47,7 @@ class EventTrigger(ExplicitComponent):
                        desc='trigger time')
 
         self.add_input('a',
-                       val=20.0,
+                       val=10.0,
                        desc='scale parameter')
 
         self.add_output('filtered',
@@ -79,6 +74,8 @@ class EventTrigger(ExplicitComponent):
 
         outputs['filtered'] = filtered
         outputs['filtered_timescaled'] = (default_val - signal)**2
+
+        #print(np.sum(outputs['filtered_timescaled'] ))
 
     def compute_partials(self, inputs, jacobian):
         t, t_trigger, signal, a, default_val = inputs['t'], inputs['t_trigger'], inputs['signal'], inputs['a'], inputs['default_val']
@@ -130,6 +127,5 @@ if __name__ == '__main__':
 
 
     plt.show()
-
 
 

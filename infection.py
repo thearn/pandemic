@@ -186,4 +186,3 @@ if __name__ == '__main__':
 
     p.check_partials(compact_print=True, method='cs')
 
-

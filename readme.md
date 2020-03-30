@@ -3,9 +3,13 @@
 MDAO-Based Pandemic Countermeasure Optimization
 ========================================================
 
-A Python-based set of tools for pandemic modeling with analytic derivatives, which allows for the numerical optimization of infectious disease mitigation techniques (social distancing, etc.). The aim is to provide a set of tools to help inform or derive localized policy decisions relating to the spread of illnesses such as COVID-19. This will include prognostics of infection magnitude and health care service capacity planning.
+A Python-based set of tools for pandemic modeling with analytic derivatives, which allows for the numerical optimization of infectious disease mitigation techniques (social distancing, etc.). The aim is to provide a set of tools to help inform or derive localized policy decisions relating to the spread of illnesses such as COVID-19. This will include prognostics of infection magnitude and health care service capacity planning. 
 
-NOTE: We are by no means infectious disease experts, but rather pracitioners of numerical optimization and simulation of multidisciplinary systems.
+By adapting methods of optimizing large systems of coupled dynamical multidisciplinary systems commonly used in aerospace to the study of infectious diseases, we hope to introduce a novel analysis capability.
+
+Developed using the dynamical systems optimization framework [Dymos](https://openmdao.github.io/dymos/), within the [OpenMDAO](https://openmdao.org/) Multidisciplinary Analysis and Optimization environment.
+
+NOTE: We are by no means infectious disease experts, but rather pracitioners of numerical optimization and multidisciplinary systems analysis.
 
 Background
 ===========
@@ -19,7 +23,7 @@ where `S`, `I`, and `R` represent the number of susceptible, infected, and recov
 Adaptation of SIR model for optimal control
 ===============================
 
-In order to represent this system in a form that can be analyzed in a system optimization context applicable to general infectious diseases, let us consider a dynamic optimization control `sigma(t)` to temporally reduce the natural contact rate of the disease `beta`, representing the application of social policies (such as Social Distancing measures).
+In order to represent this system in a form that can be analyzed in a system optimization context applicable to general infectious diseases, let us consider a dynamic optimization control `sigma(t)` to temporally reduce the natural contact rate of the disease `beta`, representing the application of mitigation policies (such as [Social Distancing](https://en.wikipedia.org/wiki/Social_distancing) measures).
 
 Let us also more carefully consider the resolution of an infected individual, as one of two possibilities: recovery with immunity (i.e. assumption of a "recovered" state), or death `D`, an additional category of the model to be tracked and integrated. Let `gamma / T_inf.` be the recovery rate of the disease, divided by the average duration of the infection, which complimentary defines the mortality as `(1 - gamma) / T_inf.`. 
 
@@ -69,7 +73,7 @@ When run, this establishes the baseline situation under the given parameters as:
 This indicates a peak infection rate of over half the total population under consideration, around time `t = 28 (days)`.
 
 Now, allowing for dynamic optimization representing social distancing implementation, let's optimize the scenario with respect to `sigma(t)` in order to flatten the infection curve below 15% of the population total at peak. Specifically, let's aim to find (in some sense) the least amount of mitigation necessary to reach this target. To do this, we can minimize the sum of the square of the mitigation vector `sigma(t)`.
-We also specify that mitigation must begin only after `t=20.0`, to study the effect of lagging the mitigation policy.
+We also specify that mitigation must begin only after `t_0 = 10.0`, to study the effect of lagging the mitigation policy. For `theta(t)`, we set a smoothness constant of `a = 10.0`
 
 
 Following this, we get the formulation:
@@ -89,10 +93,11 @@ Running this gives the solution:
 
 ![alt text](images/Figure_2.png "With mitigation")
 
-indicating successful flattening of the infection curve below the specified target.
+indicating successful flattening of the infection curve below the specified target, using a social distance infection mitigation strategy lasting around 65 days.
 
 Next steps 
 ===========
+- Reversed problem formulation: Implement example to directly minimize infection peak, placing constraints on mitigation strength.
 - Derivation of critical patient category, including hospitalized ICU versus unhospitalized categories
 - Finer detailed calculation of the `sigma(t)` control parameter relating to social policy
 - Calibration with real-world date related to the spread of COVID-19

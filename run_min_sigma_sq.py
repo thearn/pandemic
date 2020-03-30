@@ -39,29 +39,26 @@ phase.add_state('sum_beta', rate_source='beta_trigger.filtered_timescaled', defe
 
 p.driver = pyOptSparseDriver()
 p.driver.options['optimizer'] = 'SNOPT'
-p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-8
-p.driver.opt_settings['Major optimality tolerance'] = 1.0E-5
+#p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-8
+#p.driver.opt_settings['Major optimality tolerance'] = 1.0E-5
 p.driver.opt_settings['iSumm'] = 6
 
 p.driver.declare_coloring()
 
 #phase.add_path_constraint('N', units='pax', equals=pop_total, scaler=1e-2)
 lim = 0.15
-phase.add_path_constraint('infected', units='pax', upper=lim * pop_total, scaler=10)
+phase.add_path_constraint('infected', units='pax', upper=lim * pop_total, ref=lim*pop_total)
 
 phase.add_control('beta', targets=['beta_trigger.signal'], lower=0.1, upper=0.4, ref=0.4)
 
 #phase.add_polynomial_control('beta', targets=['beta_trigger.signal'], lower=0.1, upper=0.4, order=1)
 
-phase.add_boundary_constraint('infected', loc='final', upper=infected0)
-phase.add_objective('sum_beta', loc='final', ref=1.0e3)
+phase.add_boundary_constraint('infected', loc='final', upper=2*infected0, ref=infected0)
+phase.add_objective('sum_beta', loc='final', ref=20.0)
 
 
 traj.add_phase(name='phase0', phase=phase)
 p.setup(check=True)
-
-# start with 10 susceptible, 1 infected, 0 recovered
-# interpolate to expected end condition: all 11 recovered
 
 p.set_val('traj.phase0.t_initial', 0)
 p.set_val('traj.phase0.t_duration', 300)
@@ -96,17 +93,17 @@ except:
         beta = sim_out.get_val('traj.phase0.timeseries.polynomial_controls:beta')
     except:
         beta = np.ones(t.shape) * 0.4
-#beta = sim_out.get_val('traj.phase0.rhs_col.covid19.beta_pass')
 
-
+print("objective:", bs[-1])
+#print(beta[-1])
 # for iii in range(len(i)):
 #   print(t[iii], i[iii])
 
 fig = plt.figure(figsize=(10, 5))
 plt.subplot(211)
-plt.title('mitigation beginning t=20.0')
+plt.title('mitigation starting t = 10.0')
 plt.plot(t, len(t) * [lim], 'k:', linewidth=0.9, label='goal')
-plt.plot([20,20], [0, 1], 'k--', linewidth=0.9)
+plt.plot([10,10], [0, 1], 'k--', linewidth=0.9)
 plt.plot(t, i/pop_total, label='infected')
 plt.plot(t, s/pop_total, label='susceptible')
 plt.plot(t, r/pop_total, label='recovd/immune')
@@ -116,7 +113,7 @@ plt.ylabel('pct. pop')
 plt.legend(loc=1)
 
 plt.subplot(212)
-plt.plot([20,20], [0, 1], 'k--', linewidth=0.9)
+plt.plot([10,10], [0, 1], 'k--', linewidth=0.9)
 plt.plot(t, beta, label='$\\beta$')
 plt.legend()
 plt.show()
