@@ -32,10 +32,44 @@ This will allow for consideration of mortality rates, and the possibilities rela
 Implementation
 ================
 
-The above equations were implemented in the dynamic systems optimization framework Dymos, which is built using the OpenMDAO optimization framework.
+The above equations were implemented in the dynamic systems optimization framework Dymos, which is built using the OpenMDAO optimization framework. 
 
-Minimize: 
+As a baseline, the system can be run without the consideration of any type of mitigation strategy, i.e. constant `beta`, `gamma = 0.95`, and `T_inf = 14 (days)` and `T_imm = 300 (days)`.
 
+This corresponds to the problem statement:
+
+    Minimize: 
+        - (None)
+    With respect to: 
+        - ODE state variables `S`, `I`, `R`, `D`
+    Such that:
+        - System begins at `S = 999500`, `I = 500`, `R = 0`, `D = 0`, `N = 1000000`
+        - Solution satisfies ODE
+
+When run, this establishes the baseline situation under the given parameters as:
+
+![alt text](images/Figure_1.png "No mitigation")
+
+This indicates a peak infection rate of over half the total population under consideration, around time `t = 28 (days)`.
+
+Now, allowing for dynamic optimization representing social distancing implementation, let's optimize the scenario with respect to `sigma(t)` in order to flatten the infection curve below 15% of the population total at peak. Specifically, let's aim to find (in some sense) the least amount of mitigation necessary to reach this target. To do this, we can minimize the sum of the square of the mitigation vector `sigma(t)`.  Following this, we get the formulation:
+
+    Minimize: 
+        - Sum of `sigma(t)^2`
+    With respect to: 
+        -`sigma(t)`
+        - ODE state variables `S`, `I`, `R`, `D`
+    Such that:
+        - peak infection `I` is below 15% of the total population `N`
+        - System begins at `S = 999500`, `I = 500`, `R = 0`, `D = 0`, `N = 1000000`
+        - Solution satisfies ODE
+
+as implemented in the problem definition of `run_min_sigma_sq.py`.
+Running this gives the solution:
+
+![alt text](images/Figure_2.png "With mitigation")
+
+indicating successful flattening of the infection curve below the specified target.
 
 Next steps 
 ===========

@@ -71,7 +71,7 @@ class Infection(ExplicitComponent):
                        val=0.4 * np.ones(nn), desc='contact rate', units=None)
 
         self.add_input('gamma',
-                       val=0.9 * np.ones(nn), desc='recovery rate', units=None)
+                       val=0.95 * np.ones(nn), desc='recovery rate', units=None)
 
         self.add_input('mu',
                        val=0.2 * np.ones(nn), desc='critical rate', units=None)
