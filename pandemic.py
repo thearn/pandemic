@@ -24,7 +24,6 @@ class Pandemic(om.Group):
                                             'duration_immune',
                                             'duration_critical',
                                             'epsilon',
-                                            'delta',
                                             'gamma',
                                             'mu',
                                             'sigma',

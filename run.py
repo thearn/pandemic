@@ -33,24 +33,28 @@ phase.add_state('infected', fix_initial=True, units='pax', rate_source='idot', t
                 upper=pop_total, ref=pop_total/2, defect_scaler = ds)
 phase.add_state('immune', fix_initial=True, units='pax', rate_source='rdot', targets=['immune'], lower=0.0,
                 upper=pop_total, ref=pop_total/2, defect_scaler = ds)
-phase.add_state('sum_beta', rate_source='beta_trigger.filtered_timescaled', defect_scaler = ds, fix_initial=False )
+phase.add_state('sum_beta', rate_source='beta_trigger.filtered_timescaled', defect_scaler = ds, fix_initial=True )
 
 #p.driver = om.ScipyOptimizeDriver()
 
 p.driver = pyOptSparseDriver()
 p.driver.options['optimizer'] = 'SNOPT'
-p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-5
-# p.driver.opt_settings['Major optimality tolerance'] = 1.0E-5
+p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-8
+p.driver.opt_settings['Major optimality tolerance'] = 1.0E-5
 p.driver.opt_settings['iSumm'] = 6
 
 p.driver.declare_coloring()
 
 #phase.add_path_constraint('N', units='pax', equals=pop_total, scaler=1e-2)
-phase.add_path_constraint('infected', units='pax', upper=0.15 * pop_total)
+lim = 0.15
+phase.add_path_constraint('infected', units='pax', upper=lim * pop_total, scaler=10)
 
-phase.add_control('beta', targets=['beta_trigger.signal'], lower=0.05, upper=0.40, ref=0.4)
+phase.add_control('beta', targets=['beta_trigger.signal'], lower=0.1, upper=0.4, ref=0.4)
 
-phase.add_objective('sum_beta', loc='final', ref=1.0e8)
+#phase.add_polynomial_control('beta', targets=['beta_trigger.signal'], lower=0.1, upper=0.4, order=1)
+
+phase.add_boundary_constraint('infected', loc='final', upper=infected0)
+phase.add_objective('sum_beta', loc='final', ref=1.0e3)
 
 
 traj.add_phase(name='phase0', phase=phase)
@@ -84,8 +88,6 @@ d = sim_out.get_val('traj.phase0.timeseries.states:dead')
 
 bs = sim_out.get_val('traj.phase0.timeseries.states:sum_beta')
 
-plt.figure()
-plt.plot(bs)
 
 try:
     beta = sim_out.get_val('traj.phase0.timeseries.controls:beta')
@@ -94,10 +96,17 @@ except:
         beta = sim_out.get_val('traj.phase0.timeseries.polynomial_controls:beta')
     except:
         beta = np.ones(t.shape) * 0.4
+#beta = sim_out.get_val('traj.phase0.rhs_col.covid19.beta_pass')
+
+
+# for iii in range(len(i)):
+#   print(t[iii], i[iii])
 
 fig = plt.figure(figsize=(10, 5))
 plt.subplot(211)
-plt.title('mitigation starting t = 20.0')
+plt.title('mitigation beginning t=20.0')
+plt.plot(t, len(t) * [lim], 'k:', linewidth=0.9, label='goal')
+plt.plot([20,20], [0, 1], 'k--', linewidth=0.9)
 plt.plot(t, i/pop_total, label='infected')
 plt.plot(t, s/pop_total, label='susceptible')
 plt.plot(t, r/pop_total, label='recovd/immune')
@@ -107,6 +116,7 @@ plt.ylabel('pct. pop')
 plt.legend(loc=1)
 
 plt.subplot(212)
+plt.plot([20,20], [0, 1], 'k--', linewidth=0.9)
 plt.plot(t, beta, label='$\\beta$')
 plt.legend()
 plt.show()

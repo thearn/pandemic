@@ -1,7 +1,7 @@
 from sympy import *
 
 # type in component param names here
-inputs = 't t_trigger input_signal a default_val'
+inputs = 'beta gamma susceptible infected immune dead N epsilon delta duration_infection duration_immune'
 
 # ----------------
 outputs = {}
@@ -9,14 +9,31 @@ inputs_unpacked = ', '.join(inputs.split())
 exec('%s = symbols("%s")' % (inputs_unpacked, inputs))
 exec('input_symbs = [%s]' % inputs_unpacked)
 # -----------------
-# -----------------
 
-y = 1 / (1 + exp(-a*(t - t_trigger)))
-filtered = (default_val - input_signal)*y + (1 - y) * default_val
+# paste compute() code here
 
-outputs['filtered'] = filtered
-outputs['filtered_timescaled'] = (default_val - input_signal)**2
+N = susceptible + infected + immune + dead
+pct_infected = infected / N
 
+new_infected = susceptible * beta * pct_infected
+
+new_recovered = infected * gamma/duration_infection
+
+new_susceptible = immune * epsilon / duration_immune
+
+new_dead = infected * (1 - gamma) / duration_infection
+
+outputs['sdot'] = new_susceptible - new_infected
+
+outputs['idot'] = new_infected - new_recovered - new_dead
+
+outputs['rdot'] = new_recovered - new_susceptible
+
+outputs['ddot'] = new_dead
+
+outputs['N'] = N
+
+outputs['beta_pass'] = beta
 
 # ------------------
 # ------------------
@@ -40,7 +57,6 @@ for oname in outputs:
             print(st)
             declare[oname].append(iname)
 
-
 # declare partials
 # ------------------
 print("")
@@ -52,5 +68,3 @@ for oname in declare:
     declare_statements = "\t\tself.declare_partials('%s', [%s], rows=arange, cols=arange)" % (oname, list_inputs)
     print(declare_statements)
 
-
-# run the file to get compute_partials code

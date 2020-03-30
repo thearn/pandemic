@@ -67,14 +67,11 @@ class Infection(ExplicitComponent):
         self.add_input('epsilon',
                        val=0.0 * np.ones(nn), desc='immunity loss rate', units=None)
 
-        self.add_input('delta',
-                       val=0.15 * np.ones(nn), desc='death rate', units=None)
-
         self.add_input('beta',
                        val=0.4 * np.ones(nn), desc='contact rate', units=None)
 
         self.add_input('gamma',
-                       val=1.0 * np.ones(nn), desc='recovery rate', units=None)
+                       val=0.9 * np.ones(nn), desc='recovery rate', units=None)
 
         self.add_input('mu',
                        val=0.2 * np.ones(nn), desc='critical rate', units=None)
@@ -90,31 +87,26 @@ class Infection(ExplicitComponent):
                        val=14. * np.ones(nn), desc='duration of the infection', units='d')
 
         self.add_input('duration_immune',
-                       val=1.e10 * np.ones(nn), desc='duration of immunity', units='d')
+                       val=300.0 * np.ones(nn), desc='duration of immunity', units='d')
         
         self.add_input('duration_critical',
                        val=1.e10 * np.ones(nn), desc='duration of immunity', units='d')
 
         arange = np.arange(self.options['num_nodes'], dtype=int)
-        self.declare_partials('sdot', ['beta', 'susceptible', 'infected', 'immune','dead', 
-                                       'epsilon', 'duration_immune'], rows=arange, cols=arange)
-        
         self.declare_partials('sdot', ['beta', 'susceptible', 'infected', 'immune', 'dead', 'epsilon', 'duration_immune'], rows=arange, cols=arange)
-        self.declare_partials('idot', ['beta', 'gamma', 'susceptible', 'infected', 'immune', 'dead', 'delta', 'duration_infection'], rows=arange, cols=arange)
+        self.declare_partials('idot', ['beta', 'susceptible', 'infected', 'immune', 'dead', 'duration_infection'], rows=arange, cols=arange)
         self.declare_partials('rdot', ['gamma', 'infected', 'immune', 'epsilon', 'duration_infection', 'duration_immune'], rows=arange, cols=arange)
-        self.declare_partials('ddot', ['infected', 'delta', 'duration_infection'], rows=arange, cols=arange)
+        self.declare_partials('ddot', ['gamma', 'infected', 'duration_infection'], rows=arange, cols=arange)
         self.declare_partials('N', ['susceptible', 'infected', 'immune', 'dead'], rows=arange, cols=arange)
-
-        self.declare_partials('beta_pass', 'beta', rows=arange, cols=arange)
+        self.declare_partials('beta_pass', ['beta'], rows=arange, cols=arange)
 
     def compute(self, inputs, outputs):
-        beta, gamma, susceptible, infected, immune, dead, epsilon, delta, duration_infection, duration_immune = inputs['beta'], inputs['gamma'], inputs['susceptible'], inputs['infected'], inputs['immune'], inputs['dead'], inputs['epsilon'], inputs['delta'], inputs['duration_infection'], inputs['duration_immune']
+        beta, gamma, susceptible, infected, immune, dead, epsilon, duration_infection, duration_immune = inputs['beta'], inputs['gamma'], inputs['susceptible'], inputs['infected'], inputs['immune'], inputs['dead'], inputs['epsilon'], inputs['duration_infection'], inputs['duration_immune']
 
         epsilon = inputs['epsilon']
-        delta = inputs['delta']
 
         N = susceptible + infected + immune + dead
-        pct_infected = infected /N
+        pct_infected = infected / N
         
         new_infected = susceptible * beta * pct_infected
 
@@ -122,7 +114,7 @@ class Infection(ExplicitComponent):
         
         new_susceptible = immune * epsilon / duration_immune
         
-        new_dead = infected * delta / duration_infection
+        new_dead = infected * (1 - gamma) / duration_infection
 
         outputs['sdot'] = new_susceptible - new_infected
 
@@ -138,7 +130,7 @@ class Infection(ExplicitComponent):
 
 
     def compute_partials(self, inputs, jacobian):
-        beta, gamma, susceptible, infected, immune, dead, epsilon, delta, duration_infection, duration_immune = inputs['beta'], inputs['gamma'], inputs['susceptible'], inputs['infected'], inputs['immune'], inputs['dead'], inputs['epsilon'], inputs['delta'], inputs['duration_infection'], inputs['duration_immune']
+        beta, gamma, susceptible, infected, immune, dead, epsilon, duration_infection, duration_immune = inputs['beta'], inputs['gamma'], inputs['susceptible'], inputs['infected'], inputs['immune'], inputs['dead'], inputs['epsilon'], inputs['duration_infection'], inputs['duration_immune']
 
         jacobian['sdot', 'beta'] = -infected*susceptible/(dead + immune + infected + susceptible)
         jacobian['sdot', 'susceptible'] = beta*infected*susceptible/(dead + immune + infected + susceptible)**2 - beta*infected/(dead + immune + infected + susceptible)
@@ -149,13 +141,11 @@ class Infection(ExplicitComponent):
         jacobian['sdot', 'duration_immune'] = -epsilon*immune/duration_immune**2
 
         jacobian['idot', 'beta'] = infected*susceptible/(dead + immune + infected + susceptible)
-        jacobian['idot', 'gamma'] = -infected/duration_infection
         jacobian['idot', 'susceptible'] = -beta*infected*susceptible/(dead + immune + infected + susceptible)**2 + beta*infected/(dead + immune + infected + susceptible)
-        jacobian['idot', 'infected'] = -beta*infected*susceptible/(dead + immune + infected + susceptible)**2 + beta*susceptible/(dead + immune + infected + susceptible) - delta/duration_infection - gamma/duration_infection
+        jacobian['idot', 'infected'] = -beta*infected*susceptible/(dead + immune + infected + susceptible)**2 + beta*susceptible/(dead + immune + infected + susceptible) - gamma/duration_infection - (1 - gamma)/duration_infection
         jacobian['idot', 'immune'] = -beta*infected*susceptible/(dead + immune + infected + susceptible)**2
         jacobian['idot', 'dead'] = -beta*infected*susceptible/(dead + immune + infected + susceptible)**2
-        jacobian['idot', 'delta'] = -infected/duration_infection
-        jacobian['idot', 'duration_infection'] = delta*infected/duration_infection**2 + gamma*infected/duration_infection**2
+        jacobian['idot', 'duration_infection'] = gamma*infected/duration_infection**2 + infected*(1 - gamma)/duration_infection**2
 
         jacobian['rdot', 'gamma'] = infected/duration_infection
         jacobian['rdot', 'infected'] = gamma/duration_infection
@@ -164,16 +154,16 @@ class Infection(ExplicitComponent):
         jacobian['rdot', 'duration_infection'] = -gamma*infected/duration_infection**2
         jacobian['rdot', 'duration_immune'] = epsilon*immune/duration_immune**2
 
-        jacobian['ddot', 'infected'] = delta/duration_infection
-        jacobian['ddot', 'delta'] = infected/duration_infection
-        jacobian['ddot', 'duration_infection'] = -delta*infected/duration_infection**2
+        jacobian['ddot', 'gamma'] = -infected/duration_infection
+        jacobian['ddot', 'infected'] = (1 - gamma)/duration_infection
+        jacobian['ddot', 'duration_infection'] = -infected*(1 - gamma)/duration_infection**2
 
         jacobian['N', 'susceptible'] = 1.0
         jacobian['N', 'infected'] = 1.0
         jacobian['N', 'immune'] = 1.0
         jacobian['N', 'dead'] = 1.0
 
-        jacobian['beta_pass', 'beta'] = np.ones(beta.shape)
+        jacobian['beta_pass', 'beta'] = 1.0
 
 if __name__ == '__main__':
     from openmdao.api import Problem, Group
