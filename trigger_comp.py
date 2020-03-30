@@ -3,23 +3,28 @@ from openmdao.api import ExplicitComponent
 
 
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
-# n=100
+n=100
 
-# t = np.linspace(0, 10, n)
+t = np.linspace(0, 10, n)
 
-# default_val = 0.6
-# signal = 1/(t**2+1)#np.linspace(0.0, 0.6, n)
-# t_trigger = 5.2
+default_val = 0.4
+signal = np.linspace(0.4, 0.0, n)**1.5
+t_trigger = 5
 
-# a = 30
+a = 30
 
-# y = 1 / (1 + np.exp(-a*(t - t_trigger)))
+y = 1 / (1 + np.exp(-a*(t - t_trigger)))
 
-# plt.plot(signal*y + (1 - y) * default_val)
-# plt.show()
-# quit()
+fig = plt.figure(figsize=(10, 5))
+plt.title("Time-based trigger of $\\sigma$ at t = 5")
+plt.plot(signal*y + (1 - y) * default_val, label="$\\theta$", linewidth=5)
+plt.plot(signal, label="$\\sigma$")
+plt.plot(n * [default_val], label="$\\beta$")
+plt.legend()
+plt.show()
+quit()
 
 class EventTrigger(ExplicitComponent):
     """ Reduces signal?

@@ -5,6 +5,8 @@ MDAO-Based Pandemic Countermeasure Optimization
 
 A Python-based set of tools for pandemic modeling with analytic derivatives, which allows for the numerical optimization of infectious disease mitigation techniques (social distancing, etc.). The aim is to provide a set of tools to help inform or derive localized policy decisions relating to the spread of illnesses such as COVID-19. This will include prognostics of infection magnitude and health care service capacity planning.
 
+NOTE: We are by no means infectious disease experts, but rather pracitioners of numerical optimization and simulation of multidisciplinary systems.
+
 Background
 ===========
 
@@ -17,11 +19,25 @@ where `S`, `I`, and `R` represent the number of susceptible, infected, and recov
 Adaptation of SIR model for optimal control
 ===============================
 
-In order to represent this system in a form that can be analyzed in a system optimization context applicable to general infectious diseases, let us consider a dynamic optimization control `theta(t)` to temporally reduce the natural contact rate of the disease `beta`, representing the application of social policies (such as Social Distancing measures).
+In order to represent this system in a form that can be analyzed in a system optimization context applicable to general infectious diseases, let us consider a dynamic optimization control `sigma(t)` to temporally reduce the natural contact rate of the disease `beta`, representing the application of social policies (such as Social Distancing measures).
 
 Let us also more carefully consider the resolution of an infected individual, as one of two possibilities: recovery with immunity (i.e. assumption of a "recovered" state), or death `D`, an additional category of the model to be tracked and integrated. Let `gamma / T_inf.` be the recovery rate of the disease, divided by the average duration of the infection, which complimentary defines the mortality as `(1 - gamma) / T_inf.`. 
 
 Similarly, let `T_imm` be the average duration of immunity to the disease granted by successful recovery. Then the rate of loss of immunity (and gain in susceptibility) can be established as `1 / T_imm`.
+
+It would also be novel to explore the effect of potential mitigation strategies that begin at a specific time, rather than be available at the start of a particular simulation. In this way, the effect of a lag time on policy implementation can be estimated. Specifically, consider that the earliest the effect of `sigma(t)` can take place is some time `t_0`. 
+
+For integration into the ODE system, note that the indicator function of the boolean `t > t_0` can be approximated with the continuous sigmoidal function 
+
+![alt text](images/indicator.gif "Approximate indicator function")
+
+where `a > 0` is a scale parameter.
+
+Using this, we can define a filtered control `theta(t)` 
+
+![alt text](images/theta.gif "Theta")
+
+which balances between the default contact value `beta` and the control vector `sigma(t)` based on the condition `t > t_0`.
 
 ![alt text](images/msir.gif "Modified equations of SIR model")
 
@@ -52,7 +68,11 @@ When run, this establishes the baseline situation under the given parameters as:
 
 This indicates a peak infection rate of over half the total population under consideration, around time `t = 28 (days)`.
 
-Now, allowing for dynamic optimization representing social distancing implementation, let's optimize the scenario with respect to `sigma(t)` in order to flatten the infection curve below 15% of the population total at peak. Specifically, let's aim to find (in some sense) the least amount of mitigation necessary to reach this target. To do this, we can minimize the sum of the square of the mitigation vector `sigma(t)`.  Following this, we get the formulation:
+Now, allowing for dynamic optimization representing social distancing implementation, let's optimize the scenario with respect to `sigma(t)` in order to flatten the infection curve below 15% of the population total at peak. Specifically, let's aim to find (in some sense) the least amount of mitigation necessary to reach this target. To do this, we can minimize the sum of the square of the mitigation vector `sigma(t)`.
+We also specify that mitigation must begin only after `t=20.0`, to study the effect of lagging the mitigation policy.
+
+
+Following this, we get the formulation:
 
     Minimize: 
         - Sum of `sigma(t)^2`

@@ -1,7 +1,7 @@
 from sympy import *
 
 # type in component param names here
-inputs = 't t_trigger input_signal a default_val'
+inputs = 't t_0 sigma a beta'
 
 # ----------------
 outputs = {}
@@ -11,11 +11,16 @@ exec('input_symbs = [%s]' % inputs_unpacked)
 # -----------------
 # -----------------
 
-y = 1 / (1 + exp(-a*(t - t_trigger)))
-filtered = (default_val - input_signal)*y + (1 - y) * default_val
+y = 1 / (1 + exp(-a*(t - t_0)))
+filtered = (beta - sigma)*y + (1 - y) * beta
+
+dt = diff(filtered, sigma)
+
+print(latex(y))
+quit()
 
 outputs['filtered'] = filtered
-outputs['filtered_timescaled'] = (default_val - input_signal)**2
+outputs['filtered_timescaled'] = (beta - sigma)**2
 
 
 # ------------------
