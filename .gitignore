@@ -1,0 +1,7 @@
+openmdao_checks*
+*coloring_files*
+*__pycache__*
+*SNOPT_*
+*frames/*
+*.mp4
+*xdsm_out*
