@@ -139,6 +139,7 @@ With this, we see the infection peak curve being minimized with a slowly increas
 
 Next steps 
 ===========
+- Proper representation of incubation period between exposure and the ability to spread the infection
 - Derivation of critical patient category, including hospitalized ICU versus unhospitalized categories
 - Finer detailed calculation of the `sigma(t)` control parameter relating to social policy
 - Calibration with real-world date related to the spread of COVID-19
