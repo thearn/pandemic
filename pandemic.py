@@ -11,7 +11,7 @@ class Pandemic(om.Group):
     def setup(self):
         nn = self.options['num_nodes']
 
-        self.add_subsystem('beta_trigger', EventTrigger(num_nodes=nn))
+        self.add_subsystem('sigma_comp', EventTrigger(num_nodes=nn))
 
         self.add_subsystem('infection', Infection(num_nodes=nn), 
                            promotes_inputs=['susceptible', 
@@ -33,4 +33,4 @@ class Pandemic(om.Group):
 
         self.linear_solver = om.DirectSolver()
 
-        self.connect('beta_trigger.filtered', 'infection.beta')
+        self.connect('sigma_comp.filtered', 'infection.theta')

@@ -20,7 +20,7 @@ phase = dm.Phase(ode_class=Pandemic,
                  transcription=dm.GaussLobatto(num_segments=ns, 
                                                order=3))
 p.model.linear_solver = DirectSolver()
-phase.set_time_options(fix_initial=True, duration_bounds=(70.0, 301.0), units='d', targets=['beta_trigger.t'])
+phase.set_time_options(fix_initial=True, duration_bounds=(70.0, 301.0), units='d', targets=['sigma_comp.t'])
 #phase.set_time_options(fix_initial=True, fix_duration=True, units='d')
 
 
@@ -33,7 +33,7 @@ phase.add_state('infected', fix_initial=True, units='pax', rate_source='idot', t
                 upper=pop_total, ref=pop_total/2, defect_scaler = ds)
 phase.add_state('immune', fix_initial=True, units='pax', rate_source='rdot', targets=['immune'], lower=0.0,
                 upper=pop_total, ref=pop_total/2, defect_scaler = ds)
-phase.add_state('sum_beta', rate_source='beta_trigger.filtered_timescaled', defect_scaler = ds, fix_initial=True )
+phase.add_state('sum_sigma_sq', rate_source='sigma_comp.filtered_timescaled', defect_scaler = ds, fix_initial=True )
 
 #p.driver = om.ScipyOptimizeDriver()
 
@@ -49,12 +49,10 @@ p.driver.declare_coloring()
 lim = 0.15
 phase.add_path_constraint('infected', units='pax', upper=lim * pop_total, ref=lim*pop_total)
 
-phase.add_control('beta', targets=['beta_trigger.signal'], lower=0.1, upper=0.4, ref=0.4)
-
-#phase.add_polynomial_control('beta', targets=['beta_trigger.signal'], lower=0.1, upper=0.4, order=1)
+phase.add_control('sigma', targets=['sigma_comp.signal'], lower=0.1, upper=0.4, ref=0.4)
 
 phase.add_boundary_constraint('infected', loc='final', upper=2*infected0, ref=infected0)
-phase.add_objective('sum_beta', loc='final', ref=20.0)
+phase.add_objective('sum_sigma_sq', loc='final', ref=20.0)
 
 
 traj.add_phase(name='phase0', phase=phase)
@@ -71,7 +69,7 @@ p.set_val('traj.phase0.states:immune',
           phase.interpolate(ys=[0, pop_total/2], nodes='state_input'))
 p.set_val('traj.phase0.states:dead',
           phase.interpolate(ys=[1, 0], nodes='state_input'))
-p.set_val('traj.phase0.states:sum_beta',
+p.set_val('traj.phase0.states:sum_sigma_sq',
           phase.interpolate(ys=[0.6, 0.6], nodes='state_input'))
 
 p.run_driver()
@@ -83,19 +81,19 @@ i = sim_out.get_val('traj.phase0.timeseries.states:infected')
 r = sim_out.get_val('traj.phase0.timeseries.states:immune')
 d = sim_out.get_val('traj.phase0.timeseries.states:dead')
 
-bs = sim_out.get_val('traj.phase0.timeseries.states:sum_beta')
+bs = sim_out.get_val('traj.phase0.timeseries.states:sum_sigma_sq')
 
 
 try:
-    beta = sim_out.get_val('traj.phase0.timeseries.controls:beta')
+    sigma = sim_out.get_val('traj.phase0.timeseries.controls:sigma')
 except:
     try:
-        beta = sim_out.get_val('traj.phase0.timeseries.polynomial_controls:beta')
+        sigma = sim_out.get_val('traj.phase0.timeseries.polynomial_controls:sigma')
     except:
-        beta = np.ones(t.shape) * 0.4
+        sigma = np.ones(t.shape) * 0.4
 
 print("objective:", bs[-1])
-#print(beta[-1])
+#print(sigma[-1])
 # for iii in range(len(i)):
 #   print(t[iii], i[iii])
 
@@ -114,6 +112,6 @@ plt.legend(loc=1)
 
 plt.subplot(212)
 plt.plot([10,10], [0, 1], 'k--', linewidth=0.9)
-plt.plot(t, beta, label='$\\beta$')
+plt.plot(t, sigma, label='$\\sigma$')
 plt.legend()
 plt.show()
