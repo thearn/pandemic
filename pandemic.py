@@ -29,7 +29,9 @@ class Pandemic(om.Group):
                                             'sigma',
                                             'tau'],
                            promotes_outputs=['sdot', 'idot', 'rdot', 'ddot',
-                                             'chdot', 'cudot', 'N'])
+                                             'chdot', 'cudot', 'N', 'max_infected'])
+
+        #self.add_subsystem('max_infec_comp', om.KSComp(width=nn, rho=50.0))
 
         self.linear_solver = om.DirectSolver()
 

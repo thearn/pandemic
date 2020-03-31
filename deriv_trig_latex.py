@@ -1,7 +1,7 @@
 from sympy import *
 
 # type in component param names here
-inputs = 't t_on t_off signal a beta default_val'
+inputs = 't t_on t_off sigma a beta'
 
 # ----------------
 outputs = {}
@@ -12,6 +12,16 @@ exec('input_symbs = [%s]' % inputs_unpacked)
 # -----------------
 
 y = 1 / (1 + exp(-a*(t - t_on))) * 1 / (1 + exp(-a*(t_off - t))) 
+
+filtered = sigma*y + (1 - y) * beta
+
+
+print(latex(filtered.simplify()))
+
+
+quit()
+
+
 
 filtered = signal*y + (1 - y) * default_val
 

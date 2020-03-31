@@ -3,7 +3,7 @@
 MDAO-Based Pandemic Countermeasure Optimization
 ========================================================
 
-A Python-based set of tools for pandemic modeling with analytic derivatives, which allows for the numerical optimization of infectious disease mitigation techniques (social distancing, etc.). The aim is to provide a set of tools to help inform or derive localized policy decisions relating to the spread of illnesses such as COVID-19. This will include prognostics of infection magnitude and health care service capacity planning. 
+A Python-based set of tools for pandemic modeling with analytic derivatives, which allows for gradient-based  numerical optimization of infectious disease mitigation techniques (social distancing, etc.). The aim is to provide a set of tools to help inform or derive localized policy decisions relating to the spread of illnesses such as COVID-19. This will include prognostics of infection magnitude and health care service capacity planning. 
 
 By adapting methods of optimizing large systems of coupled dynamical multidisciplinary systems commonly used in aerospace to the study of infectious diseases, we hope to introduce a novel analysis capability.
 
@@ -29,28 +29,40 @@ Let us also more carefully consider the resolution of an infected individual, as
 
 Similarly, let `T_imm` be the average duration of immunity to the disease granted by successful recovery. Then the rate of loss of immunity (and gain in susceptibility) can be established as `1 / T_imm`.
 
-It would also be novel to explore the effect of potential mitigation strategies that begin at a specific time, rather than be available at the start of a particular simulation. In this way, the effect of a lag time on policy implementation can be estimated. Specifically, consider that the earliest the effect of `sigma(t)` can take place is some time `t_0`. 
+It would also be novel to explore the effect of potential mitigation strategies that begin at a specific time, rather than be available at the start of a particular simulation. In this way, the effect of a lag time on policy implementation can be estimated. Specifically, consider that the earliest the effect of `sigma(t)` can take place is some time `t_0`. Essentially, `sigma(t)` should be treated in a heterogeneous fashion that can be understood as "activating" and "deactivating" the control vector `sigma(t)` as a function of `t`. When not active, the default value of `beta` should be used within the ODE equations of state.
 
-For integration into the ODE system, note that the indicator function of the boolean `t > t_0` can be approximated with the continuous sigmoidal function 
+To implement this targeted control concept into the ODE system, note that the indicator function of the boolean `t > t_0` can be approximated with the continuous sigmoidal function 
 
 ![alt text](images/indicator.gif "Approximate indicator function")
 
 where `a > 0` is a scale parameter.
 
-Using this, we can define a filtered control `theta(t)` 
+Using this, we can define a filtered control `theta(t)` as the product of this estimate and the control signal `sigma(t)`
 
 ![alt text](images/theta.gif "Theta")
 
-which balances between the default contact value `beta` and the control vector `sigma(t)` based on the condition `t > t_0`.
+which balances between the default contact value `beta` and the control vector `sigma(t)` based on the condition `t > t_0`. This is a smooth function, and we can determine its derivatives with respect to its parameterization and all ODE state variables. For example:
+
+![alt text](images/dtheta_dsigma.gif "Theta")
+
+![alt text](images/dtheta_dt.gif "Theta")
+
+The smoothness parameter `a` provides a means to address numerical conditioning of the indicator function estimator. This allows for the system to be amenable to gradient-based numerical optimization, despite the boolean condition on the control parameter `sigma(t)` of `t > t_0`. 
+
+To illustrate this, let `beta = 0.4` be the default contact rate,  `sigma(t)` be a quadratic control vector to be manipulated by an optimizer, but with activation only after `t_0 = 5.0`. An example resulting effective contact rate `theta(t)` used for the ODE equations of state would be the blue curve below, smoothly blending `beta` and `sigma(t)` before and after `t_0`:
+
+![alt text](images/theta_plot.png "Theta")
+
+
+Now the modified ODEs of this system can be written as
 
 ![alt text](images/msir.gif "Modified equations of SIR model")
 
+The addition of `D` and `T_imm.` (immunity loss) will allow for consideration of mortality rates, and the possibilities relating to endemic cycling.
 
-This will allow for consideration of mortality rates, and the possibilities relating to endemic cycling.
 
-
-Implementation
-================
+Implementation and example
+===========================
 
 The above equations were implemented in the dynamic systems optimization framework Dymos, which is built using the OpenMDAO optimization framework. 
 
@@ -95,9 +107,38 @@ Running this gives the solution:
 
 indicating successful flattening of the infection curve below the specified target, using a social distance infection mitigation strategy lasting around 65 days.
 
+Example 2: direct peak curve minimization
+==========================================
+
+Next, consider a problem formulation where we seek to directly minimize the peak value of the infection curve, with mitigation `sigma(t)` applied strictly between two time points `t_on` and `t_off`. We'll limit the control to be a quadratic function of time, limited between days `t = 15` and `t = 55` of the simulation. Outside those times, the effective contact rate will default to the natural value for the disease & population.
+
+First, we can adapt the above definition of effective time-constrained contact rate `theta(t)` to include the `t_off` parameter, by expressing the joint indicator function of the conditions `t > t_on` and `t < t_off` as the product of two smooth sigmoidal estimates. This provides a new expression for `theta(t)` as a function of `beta`, `sigma(t)`, `t_on`, and `t_off`:
+
+![alt text](images/theta2.gif "theta(t) with t_on and t_off params.")
+
+Though omitted here for brevity, this function also has continuous derivatives with respect to its parameters, and is thus suitable for gradient-based numerical optimization.
+
+Next, we will aggregate the state variable representing the number of infected individuals within the model using the  Kreisselmeier-Steinhauser (KS) function, which provides a smooth estimate of `max(infected)`.
+
+![alt text](images/KS.gif "KS aggregator to approximate the curve peak value, max(I).")
+
+With this, we get the optimization problem formulation:
+
+    Minimize: 
+        - Infection curve peak estimate KS(I)
+    With respect to: 
+        - Quadratic contact control `sigma(t)`, between t=15 and t=55 days
+        - ODE state variables `S`, `I`, `R`, `D`
+    Such that:
+        - System begins at `S = 999500`, `I = 500`, `R = 0`, `D = 0`, `N = 1000000`
+        - Solution satisfies ODE
+
+![alt text](images/Figure_3.png "Peak minimization")
+
+With this, we see the infection peak curve being minimized with a slowly increasing level of mitigation between the specified times.
+
 Next steps 
 ===========
-- Reversed problem formulation: Implement example to directly minimize infection peak, placing constraints on mitigation strength.
 - Derivation of critical patient category, including hospitalized ICU versus unhospitalized categories
 - Finer detailed calculation of the `sigma(t)` control parameter relating to social policy
 - Calibration with real-world date related to the spread of COVID-19

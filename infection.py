@@ -1,6 +1,25 @@
 import numpy as np
 from openmdao.api import ExplicitComponent
 
+def KS(g, rho=50.0):
+    """
+    Kreisselmeier-Steinhauser constraint aggregation function.
+    """
+    g_max = np.max(np.atleast_2d(g), axis=-1)[:, np.newaxis]
+    g_diff = g - g_max
+    exponents = np.exp(rho * g_diff)
+    summation = np.sum(exponents, axis=-1)[:, np.newaxis]
+
+    KS = g_max + 1.0 / rho * np.log(summation)
+
+    dsum_dg = rho * exponents
+    dKS_dsum = 1.0 / (rho * summation)
+    dKS_dg = dKS_dsum * dsum_dg
+
+    dsum_drho = np.sum(g_diff * exponents, axis=-1)[:, np.newaxis]
+    dKS_drho = dKS_dsum * dsum_drho
+
+    return KS, dKS_dg.flatten()
 
 class Infection(ExplicitComponent):
 
@@ -19,6 +38,11 @@ class Infection(ExplicitComponent):
         self.add_input('infected',
                        val=np.zeros(nn),
                        desc='infected',
+                       units='pax')
+
+        self.add_output('max_infected',
+                       val=0.0,
+                       desc='max infected',
                        units='pax')
 
         self.add_input('immune',
@@ -97,6 +121,8 @@ class Infection(ExplicitComponent):
         self.declare_partials('ddot', ['gamma', 'infected', 'duration_infection'], rows=arange, cols=arange)
         self.declare_partials('N', ['susceptible', 'infected', 'immune', 'dead'], rows=arange, cols=arange)
 
+        self.declare_partials('max_infected', 'infected')
+
     def compute(self, inputs, outputs):
         theta, gamma, susceptible, infected, immune, dead, epsilon, duration_infection, duration_immune = inputs['theta'], inputs['gamma'], inputs['susceptible'], inputs['infected'], inputs['immune'], inputs['dead'], inputs['epsilon'], inputs['duration_infection'], inputs['duration_immune']
 
@@ -113,6 +139,8 @@ class Infection(ExplicitComponent):
         
         new_dead = infected * (1 - gamma) / duration_infection
 
+
+
         outputs['sdot'] = new_susceptible - new_infected
 
         outputs['idot'] = new_infected - new_recovered - new_dead
@@ -120,6 +148,9 @@ class Infection(ExplicitComponent):
         outputs['rdot'] = new_recovered - new_susceptible
 
         outputs['ddot'] = new_dead
+
+        agg_i, self.dagg_i = KS(infected)
+        outputs['max_infected'] = np.sum(agg_i)
 
         outputs['N'] = N
 
@@ -156,6 +187,8 @@ class Infection(ExplicitComponent):
         jacobian['N', 'infected'] = 1.0
         jacobian['N', 'immune'] = 1.0
         jacobian['N', 'dead'] = 1.0
+
+        jacobian['max_infected', 'infected'] = self.dagg_i
 
 if __name__ == '__main__':
     from openmdao.api import Problem, Group
