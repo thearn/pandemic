@@ -135,7 +135,7 @@ With this, we get the optimization problem formulation:
 
 ![alt text](images/Figure_3.png "Peak minimization")
 
-With this, we see the infection peak curve being minimized with a slowly increasing level of mitigation between the specified times.
+With this, we see the infection peak curve being minimized with a slowly increasing level of mitigation between the specified times. The result is a bimodal infection curve, with the 2nd wave propogating with a flattened peak without mitigation.
 
 Next steps 
 ===========
