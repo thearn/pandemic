@@ -11,6 +11,13 @@ Developed using the dynamical systems optimization framework [Dymos](https://ope
 
 NOTE: We are by no means infectious disease experts, but rather pracitioners of numerical optimization and multidisciplinary systems analysis.
 
+Installation
+============
+Requires OpenMDAO 3.0.0 and Dymos 0.15.0.
+Install both by running:
+```
+python -m pip install git+https://github.com/OpenMDAO/dymos.git
+```
 Background
 ===========
 
