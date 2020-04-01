@@ -1,5 +1,5 @@
 import numpy as np
-from openmdao.api import ExplicitComponent
+import openmdao.api as om
 
 def KS(g, rho=50.0):
     """
@@ -21,7 +21,7 @@ def KS(g, rho=50.0):
 
     return KS, dKS_dg.flatten()
 
-class Infection(ExplicitComponent):
+class Infection(om.ExplicitComponent):
 
     def initialize(self):
         self.options.declare('num_nodes', types=int)
@@ -30,184 +30,146 @@ class Infection(ExplicitComponent):
         nn = self.options['num_nodes']
 
         # States
-        self.add_input('susceptible',
-                       val=np.zeros(nn),
-                       desc='susceptible',
-                       units='pax')
+        self.add_input('S',
+                       val=np.zeros(nn))
 
-        self.add_input('infected',
-                       val=np.zeros(nn),
-                       desc='infected',
-                       units='pax')
+        self.add_input('I',
+                       val=np.zeros(nn))
 
-        self.add_output('max_infected',
-                       val=0.0,
-                       desc='max infected',
-                       units='pax')
-
-        self.add_input('immune',
-                       val=np.zeros(nn),
-                       desc='immune',
-                       units='pax')
-
-        self.add_input('dead',
-                       val=np.zeros(nn),
-                       desc='dead',
-                       units='pax')
-
-        self.add_input('critical_hospitalized',
-                       val=np.zeros(nn),
-                       desc='critical hospitalized')
-
-        self.add_input('critical_unhospitalized',
-                       val=np.zeros(nn),
-                       desc='critical_unhospitalized')
+        self.add_input('R',
+                       val=np.zeros(nn))
 
         # ROCs
-        self.add_output('sdot', val=np.zeros(nn), units='pax/d')
-        self.add_output('idot', val=np.zeros(nn), units='pax/d')
-        self.add_output('rdot', val=np.zeros(nn), units='pax/d')
-        self.add_output('ddot', val=np.zeros(nn), units='pax/d')
-        self.add_output('chdot', val=np.zeros(nn), units='pax/d')
-        self.add_output('cudot', val=np.zeros(nn), units='pax/d')
-
-        self.add_output('N',
-                       val=np.zeros(nn),
-                       desc='population total', units='pax')
-
-
-
-        self.add_input('t',
-                       val=np.zeros(nn),
-                       desc='time',
-                       units='d')
-
-        # self.add_output('hdot', val=np.zeros(nn), units='1.0/d')
-        # self.add_output('cdot', val=np.zeros(nn), units='1.0/d')
+        self.add_output('Sdot', val=np.zeros(nn))
+        self.add_output('Idot', val=np.zeros(nn))
+        self.add_output('Rdot', val=np.zeros(nn))
 
         # Params
-        self.add_input('epsilon',
-                       val=0.0 * np.ones(nn), desc='immunity loss rate', units=None)
-
-        self.add_input('theta',
-                       val=0.4 * np.ones(nn), desc='mitigated contact rate', units=None)
-
-        self.add_input('gamma',
-                       val=0.95 * np.ones(nn), desc='recovery rate', units=None)
-
-        self.add_input('mu',
-                       val=0.2 * np.ones(nn), desc='critical rate', units=None)
+        self.add_input('beta',
+                       val = np.zeros(nn))
 
         self.add_input('sigma',
-                       val=0.05 * np.ones(nn), desc='death rate critical hospitalized', units=None)
+                       val = np.zeros(nn))
 
-        self.add_input('tau',
-                       val=0.9 * np.ones(nn), desc='death rate critical, unhospitalized', units=None)
+        self.add_input('gamma',
+                       val = np.zeros(nn))
 
-        # durations
-        self.add_input('duration_infection',
-                       val=14. * np.ones(nn), desc='duration of the infection', units='d')
+        self.add_input('t',
+                       val = np.zeros(nn))
 
-        self.add_input('duration_immune',
-                       val=300.0 * np.ones(nn), desc='duration of immunity', units='d')
-        
-        self.add_input('duration_critical',
-                       val=1.e10 * np.ones(nn), desc='duration of immunity', units='d')
+        self.add_input('a',
+                       val=5.0,
+                       desc='scale parameter')
+        self.add_input('t_on',
+                       val=20.0,
+                       desc='trigger time')
+        self.add_input('t_off',
+                       val=60.0,
+                       desc='trigger time')
+
+        self.add_output('theta',
+                       val=np.zeros(nn))
+        self.add_output('max_I', 0.0)
+
+        self.add_output('sigma_sq', np.zeros(nn))
 
         arange = np.arange(self.options['num_nodes'], dtype=int)
-        self.declare_partials('sdot', ['theta', 'susceptible', 'infected', 'immune', 'dead', 'epsilon', 'duration_immune'], rows=arange, cols=arange)
-        self.declare_partials('idot', ['theta', 'susceptible', 'infected', 'immune', 'dead', 'duration_infection'], rows=arange, cols=arange)
-        self.declare_partials('rdot', ['gamma', 'infected', 'immune', 'epsilon', 'duration_infection', 'duration_immune'], rows=arange, cols=arange)
-        self.declare_partials('ddot', ['gamma', 'infected', 'duration_infection'], rows=arange, cols=arange)
-        self.declare_partials('N', ['susceptible', 'infected', 'immune', 'dead'], rows=arange, cols=arange)
+        self.declare_partials('Sdot', ['beta', 'sigma', 'S', 'I', 't'], rows=arange, cols=arange)
+        self.declare_partials('Sdot', ['a', 't_on', 't_off'])
+        self.declare_partials('Idot', ['beta', 'sigma', 'gamma', 'S', 'I', 't'], rows=arange, cols=arange)
+        self.declare_partials('Idot', ['a', 't_on', 't_off'])
+        self.declare_partials('Rdot', ['gamma', 'I'], rows=arange, cols=arange)
 
-        self.declare_partials('max_infected', 'infected')
+        self.declare_partials('theta', ['beta', 'sigma', 't'], rows=arange, cols=arange)
+        self.declare_partials('theta', ['a', 't_on', 't_off'])
+
+        self.declare_partials('sigma_sq', ['sigma'], rows=arange, cols=arange)
+
+        self.declare_partials('max_I', 'I')
 
     def compute(self, inputs, outputs):
-        theta, gamma, susceptible, infected, immune, dead, epsilon, duration_infection, duration_immune = inputs['theta'], inputs['gamma'], inputs['susceptible'], inputs['infected'], inputs['immune'], inputs['dead'], inputs['epsilon'], inputs['duration_infection'], inputs['duration_immune']
-
-        epsilon = inputs['epsilon']
-
-        N = susceptible + infected + immune + dead
-        pct_infected = infected / N
+        beta, sigma, gamma, S, I, R, a, t_on, t_off, t = inputs['beta'], inputs['sigma'], inputs['gamma'], inputs['S'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t']
         
-        new_infected = susceptible * theta * pct_infected
+        d_ton = np.exp(-a*(t - t_on))
+        d_toff = np.exp(-a*(-t + t_off))
 
-        new_recovered = infected * gamma/duration_infection
-        
-        new_susceptible = immune * epsilon / duration_immune
-        
-        new_dead = infected * (1 - gamma) / duration_infection
+        d_ton[np.where(d_ton > 1.e10)] = 1.e10
+        d_toff[np.where(d_toff > 1.e10)] = 1.e10
 
+        y = 1 / (1 + d_ton) * 1 / (1 + d_toff) 
 
+        theta = (beta - sigma)*y + (1 - y) * beta
 
-        outputs['sdot'] = new_susceptible - new_infected
+        agg_i, self.dagg_i = KS(I)
+        outputs['max_I'] = np.sum(agg_i)
 
-        outputs['idot'] = new_infected - new_recovered - new_dead
+        outputs['sigma_sq'] = sigma**2
 
-        outputs['rdot'] = new_recovered - new_susceptible
-
-        outputs['ddot'] = new_dead
-
-        agg_i, self.dagg_i = KS(infected)
-        outputs['max_infected'] = np.sum(agg_i)
-
-        outputs['N'] = N
+        outputs['theta'] = theta
+        outputs['Sdot'] = -theta * S * I
+        outputs['Idot'] = theta * S * I - gamma * I
+        outputs['Rdot'] = gamma * I
 
     def compute_partials(self, inputs, jacobian):
-        theta, gamma, susceptible, infected, immune, dead, epsilon, duration_infection, duration_immune = inputs['theta'], inputs['gamma'], inputs['susceptible'], inputs['infected'], inputs['immune'], inputs['dead'], inputs['epsilon'], inputs['duration_infection'], inputs['duration_immune']
+        beta, sigma, gamma, S, I, R, a, t_on, t_off, t = inputs['beta'], inputs['sigma'], inputs['gamma'], inputs['S'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t']
+        
+        d_ton = np.exp(-a*(t - t_on))
+        d_toff = np.exp(-a*(-t + t_off))
 
-        jacobian['sdot', 'theta'] = -infected*susceptible/(dead + immune + infected + susceptible)
-        jacobian['sdot', 'susceptible'] = theta*infected*susceptible/(dead + immune + infected + susceptible)**2 - theta*infected/(dead + immune + infected + susceptible)
-        jacobian['sdot', 'infected'] = theta*infected*susceptible/(dead + immune + infected + susceptible)**2 - theta*susceptible/(dead + immune + infected + susceptible)
-        jacobian['sdot', 'immune'] = theta*infected*susceptible/(dead + immune + infected + susceptible)**2 + epsilon/duration_immune
-        jacobian['sdot', 'dead'] = theta*infected*susceptible/(dead + immune + infected + susceptible)**2
-        jacobian['sdot', 'epsilon'] = immune/duration_immune
-        jacobian['sdot', 'duration_immune'] = -epsilon*immune/duration_immune**2
+        d_ton[np.where(d_ton > 1.e10)] = 1.e10
+        d_toff[np.where(d_toff > 1.e10)] = 1.e10
 
-        jacobian['idot', 'theta'] = infected*susceptible/(dead + immune + infected + susceptible)
-        jacobian['idot', 'susceptible'] = -theta*infected*susceptible/(dead + immune + infected + susceptible)**2 + theta*infected/(dead + immune + infected + susceptible)
-        jacobian['idot', 'infected'] = -theta*infected*susceptible/(dead + immune + infected + susceptible)**2 + theta*susceptible/(dead + immune + infected + susceptible) - gamma/duration_infection - (1 - gamma)/duration_infection
-        jacobian['idot', 'immune'] = -theta*infected*susceptible/(dead + immune + infected + susceptible)**2
-        jacobian['idot', 'dead'] = -theta*infected*susceptible/(dead + immune + infected + susceptible)**2
-        jacobian['idot', 'duration_infection'] = gamma*infected/duration_infection**2 + infected*(1 - gamma)/duration_infection**2
 
-        jacobian['rdot', 'gamma'] = infected/duration_infection
-        jacobian['rdot', 'infected'] = gamma/duration_infection
-        jacobian['rdot', 'immune'] = -epsilon/duration_immune
-        jacobian['rdot', 'epsilon'] = -immune/duration_immune
-        jacobian['rdot', 'duration_infection'] = -gamma*infected/duration_infection**2
-        jacobian['rdot', 'duration_immune'] = epsilon*immune/duration_immune**2
+        jacobian['Sdot', 'beta'] = -I*S
+        jacobian['Sdot', 'sigma'] = I*S/((1 + d_toff)*(1 + d_ton))
+        jacobian['Sdot', 'S'] = I*(-beta*(1 - 1/((1 + d_toff)*(1 + d_ton))) - (beta - sigma)/((1 + d_toff)*(1 + d_ton)))
+        jacobian['Sdot', 'I'] = S*(-beta*(1 - 1/((1 + d_toff)*(1 + d_ton))) - (beta - sigma)/((1 + d_toff)*(1 + d_ton)))
+        jacobian['Sdot', 'a'] = I*S*(-beta*((-t + t_on)*d_ton/((1 + d_toff)*(1 + d_ton)**2) + (t - t_off)*d_toff/((1 + d_toff)**2*(1 + d_ton))) + (beta - sigma)*(-t + t_on)*d_ton/((1 + d_toff)*(1 + d_ton)**2) + (beta - sigma)*(t - t_off)*d_toff/((1 + d_toff)**2*(1 + d_ton)))
+        jacobian['Sdot', 't_on'] = I*S*(-a*beta*d_ton/((1 + d_toff)*(1 + d_ton)**2) + a*(beta - sigma)*d_ton/((1 + d_toff)*(1 + d_ton)**2))
+        jacobian['Sdot', 't_off'] = I*S*(a*beta*d_toff/((1 + d_toff)**2*(1 + d_ton)) - a*(beta - sigma)*d_toff/((1 + d_toff)**2*(1 + d_ton)))
+        jacobian['Sdot', 't'] = I*S*(-a*(beta - sigma)*d_ton/((1 + d_toff)*(1 + d_ton)**2) + a*(beta - sigma)*d_toff/((1 + d_toff)**2*(1 + d_ton)) - beta*(-a*d_ton/((1 + d_toff)*(1 + d_ton)**2) + a*d_toff/((1 + d_toff)**2*(1 + d_ton))))
 
-        jacobian['ddot', 'gamma'] = -infected/duration_infection
-        jacobian['ddot', 'infected'] = (1 - gamma)/duration_infection
-        jacobian['ddot', 'duration_infection'] = -infected*(1 - gamma)/duration_infection**2
+        jacobian['Idot', 'beta'] = I*S
+        jacobian['Idot', 'sigma'] = -I*S/((1 + d_toff)*(1 + d_ton))
+        jacobian['Idot', 'gamma'] = -I
+        jacobian['Idot', 'S'] = I*(beta*(1 - 1/((1 + d_toff)*(1 + d_ton))) + (beta - sigma)/((1 + d_toff)*(1 + d_ton)))
+        jacobian['Idot', 'I'] = S*(beta*(1 - 1/((1 + d_toff)*(1 + d_ton))) + (beta - sigma)/((1 + d_toff)*(1 + d_ton))) - gamma
+        jacobian['Idot', 'a'] = I*S*(beta*((-t + t_on)*d_ton/((1 + d_toff)*(1 + d_ton)**2) + (t - t_off)*d_toff/((1 + d_toff)**2*(1 + d_ton))) - (beta - sigma)*(-t + t_on)*d_ton/((1 + d_toff)*(1 + d_ton)**2) - (beta - sigma)*(t - t_off)*d_toff/((1 + d_toff)**2*(1 + d_ton)))
+        jacobian['Idot', 't_on'] = I*S*(a*beta*d_ton/((1 + d_toff)*(1 + d_ton)**2) - a*(beta - sigma)*d_ton/((1 + d_toff)*(1 + d_ton)**2))
+        jacobian['Idot', 't_off'] = I*S*(-a*beta*d_toff/((1 + d_toff)**2*(1 + d_ton)) + a*(beta - sigma)*d_toff/((1 + d_toff)**2*(1 + d_ton)))
+        jacobian['Idot', 't'] = I*S*(a*(beta - sigma)*d_ton/((1 + d_toff)*(1 + d_ton)**2) - a*(beta - sigma)*d_toff/((1 + d_toff)**2*(1 + d_ton)) + beta*(-a*d_ton/((1 + d_toff)*(1 + d_ton)**2) + a*d_toff/((1 + d_toff)**2*(1 + d_ton))))
 
-        jacobian['N', 'susceptible'] = 1.0
-        jacobian['N', 'infected'] = 1.0
-        jacobian['N', 'immune'] = 1.0
-        jacobian['N', 'dead'] = 1.0
+        jacobian['Rdot', 'gamma'] = I
+        jacobian['Rdot', 'I'] = gamma
 
-        jacobian['max_infected', 'infected'] = self.dagg_i
+        jacobian['theta', 'beta'] = 1.0
+        jacobian['theta', 'sigma'] = -1/((1 + d_toff)*(1 + d_ton))
+        jacobian['theta', 'a'] = beta*((-t + t_on)*d_ton/((1 + d_toff)*(1 + d_ton)**2) + (t - t_off)*d_toff/((1 + d_toff)**2*(1 + d_ton))) - (beta - sigma)*(-t + t_on)*d_ton/((1 + d_toff)*(1 + d_ton)**2) - (beta - sigma)*(t - t_off)*d_toff/((1 + d_toff)**2*(1 + d_ton))
+        jacobian['theta', 't_on'] = a*beta*d_ton/((1 + d_toff)*(1 + d_ton)**2) - a*(beta - sigma)*d_ton/((1 + d_toff)*(1 + d_ton)**2)
+        jacobian['theta', 't_off'] = -a*beta*d_toff/((1 + d_toff)**2*(1 + d_ton)) + a*(beta - sigma)*d_toff/((1 + d_toff)**2*(1 + d_ton))
+        jacobian['theta', 't'] = a*(beta - sigma)*d_ton/((1 + d_toff)*(1 + d_ton)**2) - a*(beta - sigma)*d_toff/((1 + d_toff)**2*(1 + d_ton)) + beta*(-a*d_ton/((1 + d_toff)*(1 + d_ton)**2) + a*d_toff/((1 + d_toff)**2*(1 + d_ton)))
+
+        jacobian['max_I', 'I'] = self.dagg_i
+
+        jacobian['sigma_sq', 'sigma'] = 2.0 * sigma
 
 if __name__ == '__main__':
-    from openmdao.api import Problem, Group
+  
+  p = om.Problem()
+  p.model = om.Group()
+  n = 35
+  p.model.add_subsystem('test', Infection(num_nodes=n), promotes=['*'])
+  p.setup(force_alloc_complex=True)
+  np.random.seed(0)
+  p['S'] = np.random.uniform(1, 1000, n)
+  p['I'] = np.random.uniform(1, 1000, n)
+  p['R'] = np.random.uniform(1, 1000, n)
 
-    p = Problem()
-    p.model = Group()
+  p['beta'] = np.random.uniform(0, 2, n)
+  p['sigma'] = np.random.uniform(0, 2, n)
+  p['gamma'] = np.random.uniform(0, 2, n)
+  p['t'] = np.linspace(0, 100, n)
+  p.run_model()
+  p.check_partials(compact_print=True, method='cs')
 
-    n = 35
-    p.model.add_subsystem('test', Infection(num_nodes=n), promotes=['*'])
-    p.setup(force_alloc_complex=True)
-    np.random.seed(0)
-
-    p['susceptible'] = np.random.uniform(1, 1000, n)
-    p['infected'] = np.random.uniform(1, 1000, n)
-    p['immune'] = np.random.uniform(1, 1000, n)
-    p['dead'] = np.random.uniform(1, 1000, n)
-
-    p.run_model()
-
-
-    p.check_partials(compact_print=True, method='cs')
-
+  print(np.max(p['I']), p['max_I'])
