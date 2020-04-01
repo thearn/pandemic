@@ -11,6 +11,13 @@ Developed using the dynamical systems optimization framework [Dymos](https://ope
 
 NOTE: We are by no means infectious disease experts, but rather pracitioners of numerical optimization and multidisciplinary systems analysis.
 
+Installation
+============
+Requires OpenMDAO 3.0.0 and Dymos 0.15.0.
+Install both by running:
+```
+python -m pip install git+https://github.com/OpenMDAO/dymos.git
+```
 Background
 ===========
 
@@ -135,10 +142,11 @@ With this, we get the optimization problem formulation:
 
 ![alt text](images/Figure_3.png "Peak minimization")
 
-With this, we see the infection peak curve being minimized with a slowly increasing level of mitigation between the specified times.
+With this, we see the infection peak curve being minimized with a slowly increasing level of mitigation between the specified times. The result is a bimodal infection curve, with the 2nd wave propogating with a flattened peak without any additional mitigation. Consequently, the recovery curve is nearly linear through the simulation.
 
 Next steps 
 ===========
+- Proper representation of incubation period between exposure and the ability to spread the infection
 - Derivation of critical patient category, including hospitalized ICU versus unhospitalized categories
 - Finer detailed calculation of the `sigma(t)` control parameter relating to social policy
 - Calibration with real-world date related to the spread of COVID-19
