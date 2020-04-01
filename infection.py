@@ -113,7 +113,7 @@ class Infection(om.ExplicitComponent):
         beta, sigma, mu, epsilon, gamma, S, E, I, R, a, t_on, t_off, t, alpha = inputs['beta'], inputs['sigma'], inputs['mu'], inputs['epsilon'], inputs['gamma'], inputs['S'], inputs['E'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t'], inputs['alpha']
         
         # determine a cut-off where the infection is gone
-        #I[np.where(I < 1e-6)] = 0.0
+        I[np.where(I < 1e-4)] = 0.0
         #E[np.where(E < 1e-6)] = 0.0
 
         # fix numerical overflow
@@ -144,7 +144,7 @@ class Infection(om.ExplicitComponent):
         beta, sigma, mu, epsilon, gamma, S, E, I, R, a, t_on, t_off, t, alpha = inputs['beta'], inputs['sigma'], inputs['mu'], inputs['epsilon'], inputs['gamma'], inputs['S'], inputs['E'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t'], inputs['alpha']
         
         # determine a cut-off where the infection is gone
-        #I[np.where(I < 1e-6)] = 0.0
+        I[np.where(I < 1e-4)] = 0.0
         #E[np.where(E < 1e-6)] = 0.0
 
         # fix numerical overflow

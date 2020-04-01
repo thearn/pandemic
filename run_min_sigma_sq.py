@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from infection import Infection
 
 pop_total = 1.0
-infected0 = 1 / 500.0
+infected0 = 0.01
 ns = 50
 
 p = om.Problem(model=om.Group())
@@ -72,10 +72,10 @@ phase.add_input_parameter('t_off', targets=['t_off'], dynamic=False, val=t_off)
 #phase.add_polynomial_control('sigma', targets=['sigma'], lower=0.0, upper=0.2, ref=0.1, order=1)
 
 # adaptive control
-phase.add_control('sigma', targets=['sigma'], lower=0.0, upper=beta)
+phase.add_control('sigma', targets=['sigma'], lower=0.0, upper=beta, fix_initial=True, fix_final=True)
 
-# run out the pandemic
-phase.add_boundary_constraint('E', loc='final', upper=1e-6)
+# run out the pandemic (1% of initial infection, or 0.01% of population)
+phase.add_boundary_constraint('I', loc='final', upper=1e-4)
 
 # put a ceiling on the infection
 phase.add_path_constraint('I', upper=lim)
@@ -122,32 +122,30 @@ fig = plt.figure(figsize=(10, 8))
 plt.title('mitigation between %2.2f and %2.2f, peak infec. = %2.2f percent' % (t_on, t_off, np.max(i)))
 plt.subplot(511)
 plt.plot(t, s, 'orange', lw=2, label='susceptible')
-plt.legend(loc=1), plt.xticks(np.arange(10), " ")
+plt.legend(loc=1), plt.xticks(np.arange(0, t[-1], 50), " ")
 
 plt.subplot(512)
 plt.plot(t, e, 'k', lw=2, label='exposed')
-plt.legend(loc=1), plt.xticks(np.arange(10), " ")
+plt.legend(loc=1), plt.xticks(np.arange(0, t[-1], 50), " ")
 
 plt.subplot(513)
 plt.plot(t, i, 'teal', lw=2, label='infected')
 plt.plot(t, len(t)*[lim],'k--', lw=1)
-
-plt.legend(loc=1), plt.xticks(np.arange(10), " ")
+plt.legend(loc=1), plt.xticks(np.arange(0, t[-1], 50), " ")
 
 plt.subplot(514)
 plt.plot(t, r, 'g', lw=2, label='recovd/immune')
-plt.legend(loc=1), plt.xticks(np.arange(10), " ")
+plt.legend(loc=1), plt.xticks(np.arange(0, t[-1], 50), " ")
 
 plt.subplot(515)
 plt.plot(t, d, lw=2, label='dead')
 
 plt.xlabel('days')
-plt.ylabel('pct. pop')
 plt.legend(loc=1)
 
 fig = plt.figure(figsize=(10, 5))
 plt.subplot(211)
-plt.title('mitigation starting t = 10.0')
+plt.title('mitigation between %2.2f and %2.2f, peak infec. = %2.2f percent' % (t_on, t_off, np.max(i)))
 plt.plot(t, len(t)*[lim],'k--', lw=1)
 plt.plot(t, s/pop_total, 'orange', lw=2, label='susceptible')
 plt.plot(t, e/pop_total, 'k', lw=2, label='exposed')
@@ -155,7 +153,6 @@ plt.plot(t, i/pop_total, 'teal', lw=2, label='infected')
 plt.plot(t, r/pop_total, 'g', lw=2, label='recovd/immune')
 plt.plot(t, d/pop_total, lw=2, label='dead')
 plt.xlabel('days')
-plt.ylabel('pct. pop')
 plt.legend(loc=1)
 plt.subplot(212)
 plt.plot(t, len(t)*[beta], lw=2, label='$\\beta$')
