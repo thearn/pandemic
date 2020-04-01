@@ -112,7 +112,7 @@ Running this gives the solution:
 
 ![alt text](images/Figure_2.png "With mitigation")
 
-indicating successful flattening of the infection curve below the specified target, using a social distance infection mitigation strategy lasting around 65 days.
+indicating successful flattening of the infection curve below the specified target, using a social distance infection mitigation strategy.
 
 Example 2: direct peak curve minimization
 ==========================================
