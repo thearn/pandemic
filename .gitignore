@@ -5,3 +5,6 @@ openmdao_checks*
 *frames/*
 *.mp4
 *xdsm_out*
+*.html
+*writeup*
+*.out
