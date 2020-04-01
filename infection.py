@@ -90,6 +90,10 @@ class Infection(om.ExplicitComponent):
     def compute(self, inputs, outputs):
         beta, sigma, gamma, S, I, R, a, t_on, t_off, t = inputs['beta'], inputs['sigma'], inputs['gamma'], inputs['S'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t']
         
+        # determine a cut-off where the infection is gone
+        I[np.where(I < 1e-6)] = 0.0
+
+        # fix numerical overflow
         d_ton = np.exp(-a*(t - t_on))
         d_toff = np.exp(-a*(-t + t_off))
 
@@ -113,6 +117,10 @@ class Infection(om.ExplicitComponent):
     def compute_partials(self, inputs, jacobian):
         beta, sigma, gamma, S, I, R, a, t_on, t_off, t = inputs['beta'], inputs['sigma'], inputs['gamma'], inputs['S'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t']
         
+        # determine a cut-off where the infection is gone
+        I[np.where(I < 1e-6)] = 0.0
+
+        # fix numerical overflow
         d_ton = np.exp(-a*(t - t_on))
         d_toff = np.exp(-a*(-t + t_off))
 

@@ -24,11 +24,11 @@ phase.set_time_options(fix_initial=True, duration_bounds=(100.0, 301.0), targets
 
 
 ds = 1e-1
-phase.add_state('S', fix_initial=True, units='pax', rate_source='Sdot', targets=['S'], lower=0.0,
+phase.add_state('S', fix_initial=True, rate_source='Sdot', targets=['S'], lower=0.0,
                 upper=pop_total, ref=pop_total/2, defect_scaler = ds)
-phase.add_state('I', fix_initial=True, units='pax', rate_source='Idot', targets=['I'], lower=0.0,
+phase.add_state('I', fix_initial=True, rate_source='Idot', targets=['I'], lower=0.0,
                 upper=pop_total, ref=pop_total/2, defect_scaler = ds)
-phase.add_state('R', fix_initial=True, units='pax', rate_source='Rdot', targets=['R'], lower=0.0,
+phase.add_state('R', fix_initial=True, rate_source='Rdot', targets=['R'], lower=0.0,
                 upper=pop_total, ref=pop_total/2, defect_scaler = ds)
 phase.add_state('int_sigma', rate_source='sigma_sq', lower=0.0)
 
@@ -54,13 +54,23 @@ phase.add_input_parameter('t_off', targets=['t_off'], dynamic=False, val=t_off)
 
 #phase.add_input_parameter('sigma', targets=['sigma'], dynamic=True, val=0.1)
 
+# constant control
+#phase.add_input_parameter('sigma', targets=['sigma'], dynamic=True, val=beta)
 
+# polynomial control
+#phase.add_polynomial_control('sigma', targets=['sigma'], lower=0.0, upper=0.2, ref=0.1, order=1)
 
+# adaptive control
+phase.add_control('sigma', targets=['sigma'], lower=0.0, upper=beta, fix_initial=True, fix_final=True)
+
+# run out the pandemic
+phase.add_boundary_constraint('I', loc='final', upper=1e-6)
+
+# put a ceiling on the infection
 lim = 0.15
 phase.add_path_constraint('I', upper=lim)
-phase.add_control('sigma', targets=['sigma'], lower=0.0, upper=0.2, ref=0.1, fix_initial=True, fix_final=True)
 
-phase.add_boundary_constraint('I', loc='final', upper=0.01)
+# minimize net mitigation
 phase.add_objective('int_sigma', loc='final')
 
 phase.add_timeseries_output('theta')

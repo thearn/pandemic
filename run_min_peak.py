@@ -24,11 +24,11 @@ phase.set_time_options(fix_initial=True, duration_bounds=(100.0, 301.0), targets
 
 
 ds = 1e-1
-phase.add_state('S', fix_initial=True, units='pax', rate_source='Sdot', targets=['S'], lower=0.0,
+phase.add_state('S', fix_initial=True, rate_source='Sdot', targets=['S'], lower=0.0,
                 upper=pop_total, ref=pop_total/2, defect_scaler = ds)
-phase.add_state('I', fix_initial=True, units='pax', rate_source='Idot', targets=['I'], lower=0.0,
+phase.add_state('I', fix_initial=True, rate_source='Idot', targets=['I'], lower=0.0,
                 upper=pop_total, ref=pop_total/2, defect_scaler = ds)
-phase.add_state('R', fix_initial=True, units='pax', rate_source='Rdot', targets=['R'], lower=0.0,
+phase.add_state('R', fix_initial=True, rate_source='Rdot', targets=['R'], lower=0.0,
                 upper=pop_total, ref=pop_total/2, defect_scaler = ds)
 
 #p.driver = om.ScipyOptimizeDriver()
@@ -43,19 +43,26 @@ p.driver.declare_coloring()
 
 
 beta, gamma = 0.25, 1.0 / 14.0
+phase.add_input_parameter('a', targets=['a'], dynamic=False, val=20.0)
 phase.add_input_parameter('beta', targets=['beta'], dynamic=True, val=beta)
 phase.add_input_parameter('gamma', targets=['gamma'], dynamic=True, val=gamma)
 
-t_on, t_off = 20.0, 50.0
+t_on, t_off = 20.0, 70.0
 phase.add_input_parameter('t_on', targets=['t_on'], dynamic=False, val=t_on)
 phase.add_input_parameter('t_off', targets=['t_off'], dynamic=False, val=t_off)
 
-#phase.add_input_parameter('sigma', targets=['sigma'], dynamic=True, val=0.1)
+# constant control
+#phase.add_input_parameter('sigma', targets=['sigma'], dynamic=True, val=beta)
+
+# polynomial control
 #phase.add_polynomial_control('sigma', targets=['sigma'], lower=0.0, upper=0.2, ref=0.1, order=1)
 
-phase.add_boundary_constraint('I', loc='final', upper=0.01)
-
+# adaptive control
 phase.add_control('sigma', targets=['sigma'], lower=0.0, upper=beta, fix_initial=True, fix_final=True)
+
+# run out the pandemic
+phase.add_boundary_constraint('I', loc='final', upper=1e-6)
+
 
 phase.add_objective('max_I', scaler=10.0)
 
@@ -86,6 +93,7 @@ r = sim_out.get_val('traj.phase0.timeseries.states:R')
 
 theta = sim_out.get_val('traj.phase0.timeseries.theta')
 
+print(min(i))
 
 fig = plt.figure(figsize=(10, 5))
 plt.subplot(211)
