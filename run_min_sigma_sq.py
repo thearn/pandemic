@@ -44,10 +44,13 @@ p.driver.declare_coloring()
 
 
 
-phase.add_input_parameter('beta', targets=['beta'], dynamic=True, val=0.25)
-phase.add_input_parameter('gamma', targets=['gamma'], dynamic=True, val=1.0/14.0)
-phase.add_input_parameter('t_on', targets=['t_on'], dynamic=False, val=10.0)
-phase.add_input_parameter('t_off', targets=['t_off'], dynamic=False, val=500.0)
+beta, gamma = 0.25, 1.0 / 14.0
+phase.add_input_parameter('beta', targets=['beta'], dynamic=True, val=beta)
+phase.add_input_parameter('gamma', targets=['gamma'], dynamic=True, val=gamma)
+
+t_on, t_off = 20.0, 500.0
+phase.add_input_parameter('t_on', targets=['t_on'], dynamic=False, val=t_on)
+phase.add_input_parameter('t_off', targets=['t_off'], dynamic=False, val=t_off)
 
 #phase.add_input_parameter('sigma', targets=['sigma'], dynamic=True, val=0.1)
 
@@ -55,7 +58,6 @@ phase.add_input_parameter('t_off', targets=['t_off'], dynamic=False, val=500.0)
 
 lim = 0.15
 phase.add_path_constraint('I', upper=lim)
-
 phase.add_control('sigma', targets=['sigma'], lower=0.0, upper=0.2, ref=0.1, fix_initial=True, fix_final=True)
 
 phase.add_boundary_constraint('I', loc='final', upper=0.01)
@@ -95,13 +97,15 @@ theta = sim_out.get_val('traj.phase0.timeseries.theta')
 fig = plt.figure(figsize=(10, 5))
 plt.subplot(211)
 plt.title('mitigation starting t = 10.0')
-plt.plot(t, i/pop_total, label='infected')
-plt.plot(t, s/pop_total, label='susceptible')
-plt.plot(t, r/pop_total, label='recovd/immune')
+plt.plot(t, len(t)*[lim],'k--', lw=1)
+plt.plot(t, i/pop_total, lw=2, label='infected')
+plt.plot(t, s/pop_total, lw=2, label='susceptible')
+plt.plot(t, r/pop_total, lw=2, label='recovd/immune')
 plt.xlabel('days')
 plt.ylabel('pct. pop')
 plt.legend(loc=1)
 plt.subplot(212)
-plt.plot(t, theta)
-
+plt.plot(t, len(t)*[beta], lw=2, label='$\\beta$')
+plt.plot(t, theta, lw=2, label='$\\theta$(t)')
+plt.legend()
 plt.show()
