@@ -61,6 +61,9 @@ class Infection(om.ExplicitComponent):
         self.add_input('gamma',
                        val = np.zeros(nn))
 
+        self.add_input('epsilon',
+                       val = np.zeros(nn))
+
         self.add_input('t',
                        val = np.zeros(nn))
 
@@ -82,14 +85,14 @@ class Infection(om.ExplicitComponent):
 
         arange = np.arange(self.options['num_nodes'], dtype=int)
 
-        self.declare_partials('Sdot', ['beta', 'sigma', 'S', 'I', 't'], rows=arange, cols=arange)
+        self.declare_partials('Sdot', ['beta', 'sigma', 'epsilon', 'S', 'I', 'R', 't'], rows=arange, cols=arange)
         self.declare_partials('Sdot', ['a', 't_on', 't_off'])
 
         self.declare_partials('Edot', ['beta', 'sigma', 'S', 'E', 'I', 't', 'alpha'], rows=arange, cols=arange)
         self.declare_partials('Edot', ['a', 't_on', 't_off'])
 
         self.declare_partials('Idot', ['gamma', 'E', 'I', 'alpha'], rows=arange, cols=arange)
-        self.declare_partials('Rdot', ['gamma', 'I'], rows=arange, cols=arange)
+        self.declare_partials('Rdot', ['gamma', 'epsilon', 'I', 'R'], rows=arange, cols=arange)
 
         self.declare_partials('theta', ['beta', 'sigma', 't'], rows=arange, cols=arange)
         self.declare_partials('theta', ['a', 't_on', 't_off'])
@@ -99,7 +102,7 @@ class Infection(om.ExplicitComponent):
         self.declare_partials('max_I', 'I')
 
     def compute(self, inputs, outputs):
-        beta, sigma, gamma, S, E, I, R, a, t_on, t_off, t, alpha = inputs['beta'], inputs['sigma'], inputs['gamma'], inputs['S'], inputs['E'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t'], inputs['alpha']
+        beta, sigma, epsilon, gamma, S, E, I, R, a, t_on, t_off, t, alpha = inputs['beta'], inputs['sigma'], inputs['epsilon'], inputs['gamma'], inputs['S'], inputs['E'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t'], inputs['alpha']
         
         # determine a cut-off where the infection is gone
         I[np.where(I < 1e-6)] = 0.0
@@ -123,13 +126,13 @@ class Infection(om.ExplicitComponent):
 
         outputs['theta'] = theta
 
-        outputs['Sdot'] = -theta * S * I
+        outputs['Sdot'] = -theta * S * I + epsilon * R
         outputs['Edot'] = theta * S * I - alpha * E
         outputs['Idot'] = alpha * E - gamma * I
-        outputs['Rdot'] = gamma * I
+        outputs['Rdot'] = gamma * I - epsilon * R
 
     def compute_partials(self, inputs, jacobian):
-        beta, sigma, gamma, S, E, I, R, a, t_on, t_off, t, alpha = inputs['beta'], inputs['sigma'], inputs['gamma'], inputs['S'], inputs['E'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t'], inputs['alpha']
+        beta, sigma, epsilon, gamma, S, E, I, R, a, t_on, t_off, t, alpha = inputs['beta'], inputs['sigma'], inputs['epsilon'], inputs['gamma'], inputs['S'], inputs['E'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t'], inputs['alpha']
         
         # determine a cut-off where the infection is gone
         I[np.where(I < 1e-6)] = 0.0
@@ -144,8 +147,10 @@ class Infection(om.ExplicitComponent):
 
         jacobian['Sdot', 'beta'] = -I*S
         jacobian['Sdot', 'sigma'] = I*S/((1 + d_toff)*(1 + d_ton))
+        jacobian['Sdot', 'epsilon'] = R
         jacobian['Sdot', 'S'] = I*(-beta*(1 - 1/((1 + d_toff)*(1 + d_ton))) - (beta - sigma)/((1 + d_toff)*(1 + d_ton)))
         jacobian['Sdot', 'I'] = S*(-beta*(1 - 1/((1 + d_toff)*(1 + d_ton))) - (beta - sigma)/((1 + d_toff)*(1 + d_ton)))
+        jacobian['Sdot', 'R'] = epsilon
         jacobian['Sdot', 'a'] = I*S*(-beta*((-t + t_on)*d_ton/((1 + d_toff)*(1 + d_ton)**2) + (t - t_off)*d_toff/((1 + d_toff)**2*(1 + d_ton))) + (beta - sigma)*(-t + t_on)*d_ton/((1 + d_toff)*(1 + d_ton)**2) + (beta - sigma)*(t - t_off)*d_toff/((1 + d_toff)**2*(1 + d_ton)))
         jacobian['Sdot', 't_on'] = I*S*(-a*beta*d_ton/((1 + d_toff)*(1 + d_ton)**2) + a*(beta - sigma)*d_ton/((1 + d_toff)*(1 + d_ton)**2))
         jacobian['Sdot', 't_off'] = I*S*(a*beta*d_toff/((1 + d_toff)**2*(1 + d_ton)) - a*(beta - sigma)*d_toff/((1 + d_toff)**2*(1 + d_ton)))
@@ -168,7 +173,9 @@ class Infection(om.ExplicitComponent):
         jacobian['Idot', 'alpha'] = E
 
         jacobian['Rdot', 'gamma'] = I
+        jacobian['Rdot', 'epsilon'] = -R
         jacobian['Rdot', 'I'] = gamma
+        jacobian['Rdot', 'R'] = -epsilon
 
         jacobian['theta', 'beta'] = 1.0
         jacobian['theta', 'sigma'] = -1/((1 + d_toff)*(1 + d_ton))

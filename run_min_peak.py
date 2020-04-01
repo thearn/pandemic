@@ -47,17 +47,21 @@ p.driver.declare_coloring()
 beta = 0.25
 gamma = 1.0 / 14.0
 alpha = 1.0 / 5.0
+epsilon = 1.0 / 365.
 lim = 0.15
+
 phase.add_input_parameter('alpha', targets=['alpha'], dynamic=True, val=alpha)
 phase.add_input_parameter('beta', targets=['beta'], dynamic=True, val=beta)
 phase.add_input_parameter('gamma', targets=['gamma'], dynamic=True, val=gamma)
+phase.add_input_parameter('epsilon', targets=['epsilon'], dynamic=True, val=epsilon)
+
 
 t_on, t_off = 10.0, 90.0
 phase.add_input_parameter('t_on', targets=['t_on'], dynamic=False, val=t_on)
 phase.add_input_parameter('t_off', targets=['t_off'], dynamic=False, val=t_off)
 
 # constant control
-#phase.add_input_parameter('sigma', targets=['sigma'], dynamic=True, val=beta)
+#phase.add_input_parameter('sigma', targets=['sigma'], dynamic=True, val=0.0)
 
 # polynomial control
 #phase.add_polynomial_control('sigma', targets=['sigma'], lower=0.0, upper=0.2, ref=0.1, order=1)
@@ -66,8 +70,7 @@ phase.add_input_parameter('t_off', targets=['t_off'], dynamic=False, val=t_off)
 phase.add_control('sigma', targets=['sigma'], lower=0.0, upper=beta, ref=beta)
 
 # run out the pandemic
-phase.add_boundary_constraint('E', loc='final', upper=1e-6)
-
+phase.add_boundary_constraint('E', loc='final', upper=0.01)
 
 phase.add_objective('max_I', scaler=1e5)
 

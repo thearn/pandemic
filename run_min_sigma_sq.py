@@ -45,14 +45,16 @@ p.driver.opt_settings['iSumm'] = 6
 p.driver.declare_coloring()
 
 
-
 beta = 0.25
 gamma = 1.0 / 14.0
 alpha = 1.0 / 5.0
+epsilon = 1.0 / 365.
 lim = 0.15
+
 phase.add_input_parameter('alpha', targets=['alpha'], dynamic=True, val=alpha)
 phase.add_input_parameter('beta', targets=['beta'], dynamic=True, val=beta)
 phase.add_input_parameter('gamma', targets=['gamma'], dynamic=True, val=gamma)
+phase.add_input_parameter('epsilon', targets=['epsilon'], dynamic=True, val=epsilon)
 
 t_on, t_off = 20.0, 500.0
 phase.add_input_parameter('t_on', targets=['t_on'], dynamic=False, val=t_on)
@@ -65,7 +67,7 @@ phase.add_input_parameter('t_off', targets=['t_off'], dynamic=False, val=t_off)
 #phase.add_polynomial_control('sigma', targets=['sigma'], lower=0.0, upper=0.2, ref=0.1, order=1)
 
 # adaptive control
-phase.add_control('sigma', targets=['sigma'], lower=0.0, upper=beta, fix_initial=True, fix_final=True)
+phase.add_control('sigma', targets=['sigma'], lower=0.0, upper=beta)
 
 # run out the pandemic
 phase.add_boundary_constraint('E', loc='final', upper=1e-6)
