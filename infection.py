@@ -42,11 +42,15 @@ class Infection(om.ExplicitComponent):
         self.add_input('R',
                        val=np.zeros(nn))
 
+        self.add_input('D',
+                       val=np.zeros(nn))
+
         # ROCs
         self.add_output('Sdot', val=np.zeros(nn))
         self.add_output('Edot', val=np.zeros(nn))
         self.add_output('Idot', val=np.zeros(nn))
         self.add_output('Rdot', val=np.zeros(nn))
+        self.add_output('Ddot', val=np.zeros(nn))
 
         # Params
         self.add_input('alpha',
@@ -62,6 +66,9 @@ class Infection(om.ExplicitComponent):
                        val = np.zeros(nn))
 
         self.add_input('epsilon',
+                       val = np.zeros(nn))
+
+        self.add_input('mu',
                        val = np.zeros(nn))
 
         self.add_input('t',
@@ -91,22 +98,23 @@ class Infection(om.ExplicitComponent):
         self.declare_partials('Edot', ['beta', 'sigma', 'S', 'E', 'I', 't', 'alpha'], rows=arange, cols=arange)
         self.declare_partials('Edot', ['a', 't_on', 't_off'])
 
-        self.declare_partials('Idot', ['gamma', 'E', 'I', 'alpha'], rows=arange, cols=arange)
+        self.declare_partials('Idot', ['gamma', 'E', 'I', 'alpha', 'mu'], rows=arange, cols=arange)
         self.declare_partials('Rdot', ['gamma', 'epsilon', 'I', 'R'], rows=arange, cols=arange)
+
+        self.declare_partials('Ddot', ['mu', 'I'], rows=arange, cols=arange)
 
         self.declare_partials('theta', ['beta', 'sigma', 't'], rows=arange, cols=arange)
         self.declare_partials('theta', ['a', 't_on', 't_off'])
 
         self.declare_partials('sigma_sq', ['sigma'], rows=arange, cols=arange)
-
         self.declare_partials('max_I', 'I')
 
     def compute(self, inputs, outputs):
-        beta, sigma, epsilon, gamma, S, E, I, R, a, t_on, t_off, t, alpha = inputs['beta'], inputs['sigma'], inputs['epsilon'], inputs['gamma'], inputs['S'], inputs['E'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t'], inputs['alpha']
+        beta, sigma, mu, epsilon, gamma, S, E, I, R, a, t_on, t_off, t, alpha = inputs['beta'], inputs['sigma'], inputs['mu'], inputs['epsilon'], inputs['gamma'], inputs['S'], inputs['E'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t'], inputs['alpha']
         
         # determine a cut-off where the infection is gone
-        I[np.where(I < 1e-6)] = 0.0
-        E[np.where(E < 1e-6)] = 0.0
+        #I[np.where(I < 1e-6)] = 0.0
+        #E[np.where(E < 1e-6)] = 0.0
 
         # fix numerical overflow
         d_ton = np.exp(-a*(t - t_on))
@@ -128,15 +136,16 @@ class Infection(om.ExplicitComponent):
 
         outputs['Sdot'] = -theta * S * I + epsilon * R
         outputs['Edot'] = theta * S * I - alpha * E
-        outputs['Idot'] = alpha * E - gamma * I
+        outputs['Idot'] = alpha * E - gamma * I - mu * I
         outputs['Rdot'] = gamma * I - epsilon * R
+        outputs['Ddot'] = mu * I
 
     def compute_partials(self, inputs, jacobian):
-        beta, sigma, epsilon, gamma, S, E, I, R, a, t_on, t_off, t, alpha = inputs['beta'], inputs['sigma'], inputs['epsilon'], inputs['gamma'], inputs['S'], inputs['E'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t'], inputs['alpha']
+        beta, sigma, mu, epsilon, gamma, S, E, I, R, a, t_on, t_off, t, alpha = inputs['beta'], inputs['sigma'], inputs['mu'], inputs['epsilon'], inputs['gamma'], inputs['S'], inputs['E'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t'], inputs['alpha']
         
         # determine a cut-off where the infection is gone
-        I[np.where(I < 1e-6)] = 0.0
-        E[np.where(E < 1e-6)] = 0.0
+        #I[np.where(I < 1e-6)] = 0.0
+        #E[np.where(E < 1e-6)] = 0.0
 
         # fix numerical overflow
         d_ton = np.exp(-a*(t - t_on))
@@ -167,15 +176,20 @@ class Infection(om.ExplicitComponent):
         jacobian['Edot', 't'] = I*S*(a*(beta - sigma)*d_ton/((1 + d_toff)*(1 + d_ton)**2) - a*(beta - sigma)*d_toff/((1 + d_toff)**2*(1 + d_ton)) + beta*(-a*d_ton/((1 + d_toff)*(1 + d_ton)**2) + a*d_toff/((1 + d_toff)**2*(1 + d_ton))))
         jacobian['Edot', 'alpha'] = -E
 
+        jacobian['Idot', 'mu'] = -I
         jacobian['Idot', 'gamma'] = -I
         jacobian['Idot', 'E'] = alpha
-        jacobian['Idot', 'I'] = -gamma
+        jacobian['Idot', 'I'] = -gamma - mu
         jacobian['Idot', 'alpha'] = E
 
         jacobian['Rdot', 'gamma'] = I
         jacobian['Rdot', 'epsilon'] = -R
         jacobian['Rdot', 'I'] = gamma
         jacobian['Rdot', 'R'] = -epsilon
+
+        jacobian['Ddot', 'mu'] = I
+        jacobian['Ddot', 'I'] = mu
+
 
         jacobian['theta', 'beta'] = 1.0
         jacobian['theta', 'sigma'] = -1/((1 + d_toff)*(1 + d_ton))
@@ -197,8 +211,10 @@ if __name__ == '__main__':
   p.setup(force_alloc_complex=True)
   np.random.seed(0)
   p['S'] = np.random.uniform(1, 1000, n)
+  p['E'] = np.random.uniform(1, 1000, n)
   p['I'] = np.random.uniform(1, 1000, n)
   p['R'] = np.random.uniform(1, 1000, n)
+  p['D'] = np.random.uniform(1, 1000, n)
 
   p['beta'] = np.random.uniform(0, 2, n)
   p['sigma'] = np.random.uniform(0, 2, n)

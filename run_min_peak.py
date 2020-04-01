@@ -32,6 +32,8 @@ phase.add_state('I', fix_initial=True, rate_source='Idot', targets=['I'], lower=
                 upper=pop_total, ref=pop_total/2, defect_scaler = ds)
 phase.add_state('R', fix_initial=True, rate_source='Rdot', targets=['R'], lower=0.0,
                 upper=pop_total, ref=pop_total/2, defect_scaler = ds)
+phase.add_state('D', fix_initial=True, rate_source='Ddot', targets=['D'], lower=0.0,
+                upper=pop_total, ref=pop_total/2, defect_scaler = ds)
 
 #p.driver = om.ScipyOptimizeDriver()
 
@@ -45,15 +47,17 @@ p.driver.declare_coloring()
 
 
 beta = 0.25
-gamma = 1.0 / 14.0
+gamma = 0.95 / 14.0
 alpha = 1.0 / 5.0
 epsilon = 1.0 / 365.
+mu = (1 - 14*gamma) / 14.0
 lim = 0.15
 
 phase.add_input_parameter('alpha', targets=['alpha'], dynamic=True, val=alpha)
 phase.add_input_parameter('beta', targets=['beta'], dynamic=True, val=beta)
 phase.add_input_parameter('gamma', targets=['gamma'], dynamic=True, val=gamma)
 phase.add_input_parameter('epsilon', targets=['epsilon'], dynamic=True, val=epsilon)
+phase.add_input_parameter('mu', targets=['mu'], dynamic=True, val=mu)
 
 
 t_on, t_off = 10.0, 90.0
@@ -70,7 +74,7 @@ phase.add_input_parameter('t_off', targets=['t_off'], dynamic=False, val=t_off)
 phase.add_control('sigma', targets=['sigma'], lower=0.0, upper=beta, ref=beta)
 
 # run out the pandemic
-phase.add_boundary_constraint('E', loc='final', upper=0.01)
+phase.add_boundary_constraint('I', loc='final', upper=0.01)
 
 phase.add_objective('max_I', scaler=1e5)
 
@@ -88,10 +92,11 @@ p.set_val('traj.phase0.states:S',
 p.set_val('traj.phase0.states:E',
           phase.interpolate(ys=[infected0, 0], nodes='state_input'))
 p.set_val('traj.phase0.states:I',
-          phase.interpolate(ys=[0, pop_total/2], nodes='state_input'))
+          phase.interpolate(ys=[0, pop_total/3], nodes='state_input'))
 p.set_val('traj.phase0.states:R',
-          phase.interpolate(ys=[0, pop_total/2], nodes='state_input'))
-
+          phase.interpolate(ys=[0, pop_total/3], nodes='state_input'))
+p.set_val('traj.phase0.states:D',
+          phase.interpolate(ys=[0, pop_total/3], nodes='state_input'))
 
 p.run_driver()
 sim_out = traj.simulate()
@@ -101,10 +106,39 @@ s = sim_out.get_val('traj.phase0.timeseries.states:S')
 e = sim_out.get_val('traj.phase0.timeseries.states:E')
 i = sim_out.get_val('traj.phase0.timeseries.states:I')
 r = sim_out.get_val('traj.phase0.timeseries.states:R')
+d = sim_out.get_val('traj.phase0.timeseries.states:D')
 
 theta = sim_out.get_val('traj.phase0.timeseries.theta')
 
 print(min(i))
+
+
+fig = plt.figure(figsize=(10, 8))
+plt.title('mitigation between %2.2f and %2.2f, peak infec. = %2.2f percent' % (t_on, t_off, np.max(i)))
+plt.subplot(511)
+plt.plot(t, s, 'orange', lw=2, label='susceptible')
+plt.legend(loc=1), plt.xticks(np.arange(10), " ")
+
+plt.subplot(512)
+plt.plot(t, e, 'k', lw=2, label='exposed')
+plt.legend(loc=1), plt.xticks(np.arange(10), " ")
+
+plt.subplot(513)
+plt.plot(t, i, 'teal', lw=2, label='infected')
+plt.legend(loc=1), plt.xticks(np.arange(10), " ")
+
+plt.subplot(514)
+plt.plot(t, r, 'g', lw=2, label='recovd/immune')
+plt.legend(loc=1), plt.xticks(np.arange(10), " ")
+
+plt.subplot(515)
+plt.plot(t, d, lw=2, label='dead')
+
+plt.xlabel('days')
+plt.ylabel('pct. pop')
+plt.legend(loc=1)
+
+
 
 fig = plt.figure(figsize=(10, 5))
 plt.subplot(211)
@@ -113,6 +147,7 @@ plt.plot(t, s/pop_total, 'orange', lw=2, label='susceptible')
 plt.plot(t, e/pop_total, 'k', lw=2, label='exposed')
 plt.plot(t, i/pop_total, 'teal', lw=2, label='infected')
 plt.plot(t, r/pop_total, 'g', lw=2, label='recovd/immune')
+
 plt.xlabel('days')
 plt.ylabel('pct. pop')
 plt.legend(loc=1)
@@ -120,4 +155,5 @@ plt.subplot(212)
 plt.plot(t, len(t)*[beta], lw=2, label='$\\beta$')
 plt.plot(t, theta, lw=2, label='$\\theta$(t)')
 plt.legend()
+
 plt.show()
