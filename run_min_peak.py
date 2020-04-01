@@ -118,25 +118,25 @@ fig = plt.figure(figsize=(10, 8))
 plt.title('mitigation between %2.2f and %2.2f, peak infec. = %2.2f percent' % (t_on, t_off, np.max(i)))
 plt.subplot(511)
 plt.plot(t, s, 'orange', lw=2, label='susceptible')
-plt.legend(loc=1), plt.xticks(np.arange(0, t[-1], 50), " ")
+plt.legend(), plt.xticks(np.arange(0, t[-1], 50), " ")
 
 plt.subplot(512)
 plt.plot(t, e, 'k', lw=2, label='exposed')
-plt.legend(loc=1), plt.xticks(np.arange(0, t[-1], 50), " ")
+plt.legend(), plt.xticks(np.arange(0, t[-1], 50), " ")
 
 plt.subplot(513)
 plt.plot(t, i, 'teal', lw=2, label='infected')
-plt.legend(loc=1), plt.xticks(np.arange(0, t[-1], 50), " ")
+plt.legend(), plt.xticks(np.arange(0, t[-1], 50), " ")
 
 plt.subplot(514)
 plt.plot(t, r, 'g', lw=2, label='recovd/immune')
-plt.legend(loc=1), plt.xticks(np.arange(0, t[-1], 50), " ")
+plt.legend(), plt.xticks(np.arange(0, t[-1], 50), " ")
 
 plt.subplot(515)
 plt.plot(t, d, lw=2, label='dead')
 
 plt.xlabel('days')
-plt.legend(loc=1)
+plt.legend()
 
 
 
@@ -147,6 +147,8 @@ plt.plot(t, s/pop_total, 'orange', lw=2, label='susceptible')
 plt.plot(t, e/pop_total, 'k', lw=2, label='exposed')
 plt.plot(t, i/pop_total, 'teal', lw=2, label='infected')
 plt.plot(t, r/pop_total, 'g', lw=2, label='recovd/immune')
+plt.plot(t, d/pop_total, lw=2, label='dead')
+
 
 plt.xlabel('days')
 plt.legend(loc=1)
