@@ -33,6 +33,9 @@ class Infection(om.ExplicitComponent):
         self.add_input('S',
                        val=np.zeros(nn))
 
+        self.add_input('E',
+                       val=np.zeros(nn))
+
         self.add_input('I',
                        val=np.zeros(nn))
 
@@ -41,10 +44,14 @@ class Infection(om.ExplicitComponent):
 
         # ROCs
         self.add_output('Sdot', val=np.zeros(nn))
+        self.add_output('Edot', val=np.zeros(nn))
         self.add_output('Idot', val=np.zeros(nn))
         self.add_output('Rdot', val=np.zeros(nn))
 
         # Params
+        self.add_input('alpha',
+                       val = np.zeros(nn))
+
         self.add_input('beta',
                        val = np.zeros(nn))
 
@@ -74,10 +81,14 @@ class Infection(om.ExplicitComponent):
         self.add_output('sigma_sq', np.zeros(nn))
 
         arange = np.arange(self.options['num_nodes'], dtype=int)
+
         self.declare_partials('Sdot', ['beta', 'sigma', 'S', 'I', 't'], rows=arange, cols=arange)
         self.declare_partials('Sdot', ['a', 't_on', 't_off'])
-        self.declare_partials('Idot', ['beta', 'sigma', 'gamma', 'S', 'I', 't'], rows=arange, cols=arange)
-        self.declare_partials('Idot', ['a', 't_on', 't_off'])
+
+        self.declare_partials('Edot', ['beta', 'sigma', 'S', 'E', 'I', 't', 'alpha'], rows=arange, cols=arange)
+        self.declare_partials('Edot', ['a', 't_on', 't_off'])
+
+        self.declare_partials('Idot', ['gamma', 'E', 'I', 'alpha'], rows=arange, cols=arange)
         self.declare_partials('Rdot', ['gamma', 'I'], rows=arange, cols=arange)
 
         self.declare_partials('theta', ['beta', 'sigma', 't'], rows=arange, cols=arange)
@@ -88,7 +99,7 @@ class Infection(om.ExplicitComponent):
         self.declare_partials('max_I', 'I')
 
     def compute(self, inputs, outputs):
-        beta, sigma, gamma, S, I, R, a, t_on, t_off, t = inputs['beta'], inputs['sigma'], inputs['gamma'], inputs['S'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t']
+        beta, sigma, gamma, S, E, I, R, a, t_on, t_off, t, alpha = inputs['beta'], inputs['sigma'], inputs['gamma'], inputs['S'], inputs['E'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t'], inputs['alpha']
         
         # determine a cut-off where the infection is gone
         I[np.where(I < 1e-6)] = 0.0
@@ -110,12 +121,14 @@ class Infection(om.ExplicitComponent):
         outputs['sigma_sq'] = sigma**2
 
         outputs['theta'] = theta
+
         outputs['Sdot'] = -theta * S * I
-        outputs['Idot'] = theta * S * I - gamma * I
+        outputs['Edot'] = theta * S * I - alpha * E
+        outputs['Idot'] = alpha * E - gamma * I
         outputs['Rdot'] = gamma * I
 
     def compute_partials(self, inputs, jacobian):
-        beta, sigma, gamma, S, I, R, a, t_on, t_off, t = inputs['beta'], inputs['sigma'], inputs['gamma'], inputs['S'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t']
+        beta, sigma, gamma, S, E, I, R, a, t_on, t_off, t, alpha = inputs['beta'], inputs['sigma'], inputs['gamma'], inputs['S'], inputs['E'], inputs['I'], inputs['R'], inputs['a'], inputs['t_on'], inputs['t_off'], inputs['t'], inputs['alpha']
         
         # determine a cut-off where the infection is gone
         I[np.where(I < 1e-6)] = 0.0
@@ -127,25 +140,30 @@ class Infection(om.ExplicitComponent):
         d_ton[np.where(d_ton > 1.e10)] = 1.e10
         d_toff[np.where(d_toff > 1.e10)] = 1.e10
 
-
         jacobian['Sdot', 'beta'] = -I*S
-        jacobian['Sdot', 'sigma'] = I*S/((1 + d_toff)*(1 + d_ton))
-        jacobian['Sdot', 'S'] = I*(-beta*(1 - 1/((1 + d_toff)*(1 + d_ton))) - (beta - sigma)/((1 + d_toff)*(1 + d_ton)))
-        jacobian['Sdot', 'I'] = S*(-beta*(1 - 1/((1 + d_toff)*(1 + d_ton))) - (beta - sigma)/((1 + d_toff)*(1 + d_ton)))
-        jacobian['Sdot', 'a'] = I*S*(-beta*((-t + t_on)*d_ton/((1 + d_toff)*(1 + d_ton)**2) + (t - t_off)*d_toff/((1 + d_toff)**2*(1 + d_ton))) + (beta - sigma)*(-t + t_on)*d_ton/((1 + d_toff)*(1 + d_ton)**2) + (beta - sigma)*(t - t_off)*d_toff/((1 + d_toff)**2*(1 + d_ton)))
-        jacobian['Sdot', 't_on'] = I*S*(-a*beta*d_ton/((1 + d_toff)*(1 + d_ton)**2) + a*(beta - sigma)*d_ton/((1 + d_toff)*(1 + d_ton)**2))
-        jacobian['Sdot', 't_off'] = I*S*(a*beta*d_toff/((1 + d_toff)**2*(1 + d_ton)) - a*(beta - sigma)*d_toff/((1 + d_toff)**2*(1 + d_ton)))
-        jacobian['Sdot', 't'] = I*S*(-a*(beta - sigma)*d_ton/((1 + d_toff)*(1 + d_ton)**2) + a*(beta - sigma)*d_toff/((1 + d_toff)**2*(1 + d_ton)) - beta*(-a*d_ton/((1 + d_toff)*(1 + d_ton)**2) + a*d_toff/((1 + d_toff)**2*(1 + d_ton))))
+        jacobian['Sdot', 'sigma'] = I*S/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on))))
+        jacobian['Sdot', 'S'] = I*(-beta*(1 - 1/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on))))) - (beta - sigma)/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))))
+        jacobian['Sdot', 'I'] = S*(-beta*(1 - 1/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on))))) - (beta - sigma)/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))))
+        jacobian['Sdot', 'a'] = I*S*(-beta*((-t + t_on)*np.exp(-a*(t - t_on))/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))**2) + (t - t_off)*np.exp(-a*(-t + t_off))/((1 + np.exp(-a*(-t + t_off)))**2*(1 + np.exp(-a*(t - t_on))))) + (beta - sigma)*(-t + t_on)*np.exp(-a*(t - t_on))/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))**2) + (beta - sigma)*(t - t_off)*np.exp(-a*(-t + t_off))/((1 + np.exp(-a*(-t + t_off)))**2*(1 + np.exp(-a*(t - t_on)))))
+        jacobian['Sdot', 't_on'] = I*S*(-a*beta*np.exp(-a*(t - t_on))/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))**2) + a*(beta - sigma)*np.exp(-a*(t - t_on))/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))**2))
+        jacobian['Sdot', 't_off'] = I*S*(a*beta*np.exp(-a*(-t + t_off))/((1 + np.exp(-a*(-t + t_off)))**2*(1 + np.exp(-a*(t - t_on)))) - a*(beta - sigma)*np.exp(-a*(-t + t_off))/((1 + np.exp(-a*(-t + t_off)))**2*(1 + np.exp(-a*(t - t_on)))))
+        jacobian['Sdot', 't'] = I*S*(-a*(beta - sigma)*np.exp(-a*(t - t_on))/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))**2) + a*(beta - sigma)*np.exp(-a*(-t + t_off))/((1 + np.exp(-a*(-t + t_off)))**2*(1 + np.exp(-a*(t - t_on)))) - beta*(-a*np.exp(-a*(t - t_on))/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))**2) + a*np.exp(-a*(-t + t_off))/((1 + np.exp(-a*(-t + t_off)))**2*(1 + np.exp(-a*(t - t_on))))))
 
-        jacobian['Idot', 'beta'] = I*S
-        jacobian['Idot', 'sigma'] = -I*S/((1 + d_toff)*(1 + d_ton))
+        jacobian['Edot', 'beta'] = I*S
+        jacobian['Edot', 'sigma'] = -I*S/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on))))
+        jacobian['Edot', 'S'] = I*(beta*(1 - 1/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on))))) + (beta - sigma)/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))))
+        jacobian['Edot', 'E'] = -alpha
+        jacobian['Edot', 'I'] = S*(beta*(1 - 1/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on))))) + (beta - sigma)/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))))
+        jacobian['Edot', 'a'] = I*S*(beta*((-t + t_on)*np.exp(-a*(t - t_on))/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))**2) + (t - t_off)*np.exp(-a*(-t + t_off))/((1 + np.exp(-a*(-t + t_off)))**2*(1 + np.exp(-a*(t - t_on))))) - (beta - sigma)*(-t + t_on)*np.exp(-a*(t - t_on))/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))**2) - (beta - sigma)*(t - t_off)*np.exp(-a*(-t + t_off))/((1 + np.exp(-a*(-t + t_off)))**2*(1 + np.exp(-a*(t - t_on)))))
+        jacobian['Edot', 't_on'] = I*S*(a*beta*np.exp(-a*(t - t_on))/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))**2) - a*(beta - sigma)*np.exp(-a*(t - t_on))/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))**2))
+        jacobian['Edot', 't_off'] = I*S*(-a*beta*np.exp(-a*(-t + t_off))/((1 + np.exp(-a*(-t + t_off)))**2*(1 + np.exp(-a*(t - t_on)))) + a*(beta - sigma)*np.exp(-a*(-t + t_off))/((1 + np.exp(-a*(-t + t_off)))**2*(1 + np.exp(-a*(t - t_on)))))
+        jacobian['Edot', 't'] = I*S*(a*(beta - sigma)*np.exp(-a*(t - t_on))/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))**2) - a*(beta - sigma)*np.exp(-a*(-t + t_off))/((1 + np.exp(-a*(-t + t_off)))**2*(1 + np.exp(-a*(t - t_on)))) + beta*(-a*np.exp(-a*(t - t_on))/((1 + np.exp(-a*(-t + t_off)))*(1 + np.exp(-a*(t - t_on)))**2) + a*np.exp(-a*(-t + t_off))/((1 + np.exp(-a*(-t + t_off)))**2*(1 + np.exp(-a*(t - t_on))))))
+        jacobian['Edot', 'alpha'] = -E
+
         jacobian['Idot', 'gamma'] = -I
-        jacobian['Idot', 'S'] = I*(beta*(1 - 1/((1 + d_toff)*(1 + d_ton))) + (beta - sigma)/((1 + d_toff)*(1 + d_ton)))
-        jacobian['Idot', 'I'] = S*(beta*(1 - 1/((1 + d_toff)*(1 + d_ton))) + (beta - sigma)/((1 + d_toff)*(1 + d_ton))) - gamma
-        jacobian['Idot', 'a'] = I*S*(beta*((-t + t_on)*d_ton/((1 + d_toff)*(1 + d_ton)**2) + (t - t_off)*d_toff/((1 + d_toff)**2*(1 + d_ton))) - (beta - sigma)*(-t + t_on)*d_ton/((1 + d_toff)*(1 + d_ton)**2) - (beta - sigma)*(t - t_off)*d_toff/((1 + d_toff)**2*(1 + d_ton)))
-        jacobian['Idot', 't_on'] = I*S*(a*beta*d_ton/((1 + d_toff)*(1 + d_ton)**2) - a*(beta - sigma)*d_ton/((1 + d_toff)*(1 + d_ton)**2))
-        jacobian['Idot', 't_off'] = I*S*(-a*beta*d_toff/((1 + d_toff)**2*(1 + d_ton)) + a*(beta - sigma)*d_toff/((1 + d_toff)**2*(1 + d_ton)))
-        jacobian['Idot', 't'] = I*S*(a*(beta - sigma)*d_ton/((1 + d_toff)*(1 + d_ton)**2) - a*(beta - sigma)*d_toff/((1 + d_toff)**2*(1 + d_ton)) + beta*(-a*d_ton/((1 + d_toff)*(1 + d_ton)**2) + a*d_toff/((1 + d_toff)**2*(1 + d_ton))))
+        jacobian['Idot', 'E'] = alpha
+        jacobian['Idot', 'I'] = -gamma
+        jacobian['Idot', 'alpha'] = E
 
         jacobian['Rdot', 'gamma'] = I
         jacobian['Rdot', 'I'] = gamma
