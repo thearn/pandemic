@@ -22,6 +22,7 @@ addons:
 
 install:
 - |
+    cd ..
     echo ">>> Building python environment";
     echo " >> Installing conda";
     echo "  > Downloading miniconda";
@@ -48,6 +49,8 @@ install:
     pip install -r requirements.txt;
     pip install .;
     cd ..;
+
+    cd pandemic/
 
     pip install --upgrade pip;
 
