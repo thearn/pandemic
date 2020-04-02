@@ -39,12 +39,20 @@ phase.add_state('int_sigma', rate_source='sigma_sq', lower=0.0, defect_scaler = 
 #p.driver = om.ScipyOptimizeDriver()
 
 p.driver = om.pyOptSparseDriver()
-p.driver.options['optimizer'] = 'SNOPT'
+#p.driver.options['optimizer'] = 'SNOPT'
 #p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-8
 #p.driver.opt_settings['Major optimality tolerance'] = 1.0E-5
-p.driver.opt_settings['iSumm'] = 6
+#p.driver.opt_settings['iSumm'] = 6
 
-p.driver.declare_coloring()
+
+p.driver.options['optimizer'] = 'IPOPT'
+p.driver.opt_settings['hessian_approximation'] = 'limited-memory'
+# p.driver.opt_settings['mu_init'] = 1.0E-2
+p.driver.opt_settings['nlp_scaling_method'] = 'user-scaling'
+p.driver.opt_settings['print_level'] = 5
+p.driver.opt_settings['linear_solver'] = 'mumps'
+
+p.driver.declare_coloring() 
 
 
 beta = 0.25
@@ -124,6 +132,7 @@ plt.legend()
 
 fig = plt.figure(figsize=(10, 5))
 plt.subplot(211)
+print("dead:", d[-1])
 plt.title('baseline simulation - no mitigation')
 plt.plot(t, s/pop_total, 'orange', lw=2, label='susceptible')
 plt.plot(t, e/pop_total, 'k', lw=2, label='exposed')

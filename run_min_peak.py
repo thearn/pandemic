@@ -38,10 +38,18 @@ phase.add_state('D', fix_initial=True, rate_source='Ddot', targets=['D'], lower=
 #p.driver = om.ScipyOptimizeDriver()
 
 p.driver = om.pyOptSparseDriver()
-p.driver.options['optimizer'] = 'SNOPT'
-#p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-8
-#p.driver.opt_settings['Major optimality tolerance'] = 1.0E-12
-p.driver.opt_settings['iSumm'] = 6
+#p.driver.options['optimizer'] = 'SNOPT'
+##p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-8
+##p.driver.opt_settings['Major optimality tolerance'] = 1.0E-12
+#p.driver.opt_settings['iSumm'] = 6
+
+p.driver.options['optimizer'] = 'IPOPT'
+p.driver.opt_settings['hessian_approximation'] = 'limited-memory'
+# p.driver.opt_settings['mu_init'] = 1.0E-2
+p.driver.opt_settings['nlp_scaling_method'] = 'user-scaling'
+p.driver.opt_settings['print_level'] = 5
+p.driver.opt_settings['linear_solver'] = 'mumps'
+
 
 p.driver.declare_coloring()
 
@@ -111,7 +119,7 @@ d = sim_out.get_val('traj.phase0.timeseries.states:D')
 
 theta = sim_out.get_val('traj.phase0.timeseries.theta')
 
-print(min(i))
+print("dead:", d[-1])
 
 
 fig = plt.figure(figsize=(10, 8))
