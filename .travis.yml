@@ -55,5 +55,9 @@ install:
 
 - python -m pip install git+https://github.com/OpenMDAO/OpenMDAO.git --user;
 
+- python -m pip install git+https://github.com/OpenMDAO/testflo.git --user;
+
 script:
+    - pwd;
+    - ls -ltr;
     - testflo -n 1 --timeout=120 --show_skipped;
