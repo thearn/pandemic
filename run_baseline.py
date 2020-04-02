@@ -3,7 +3,7 @@ import openmdao.api as om
 import dymos as dm
 import matplotlib.pyplot as plt
 
-from infection import Infection
+from models import SEIRD
 
 pop_total = 1.0
 infected0 = 0.01
@@ -15,7 +15,7 @@ traj = dm.Trajectory()
 
 p.model.add_subsystem('traj', subsys=traj)
 
-phase = dm.Phase(ode_class=Infection,
+phase = dm.Phase(ode_class=SEIRD,
                  transcription=dm.GaussLobatto(num_segments=ns, 
                                                order=3))
 p.model.linear_solver = om.DirectSolver()
