@@ -1,0 +1,59 @@
+branches:
+    only:
+    - master
+
+os:
+    - linux
+
+env:
+    - PY=3.7
+
+addons:
+    apt:
+        update: true
+        sources:
+        - ubuntu-toolchain-r-test
+        packages:
+        - gfortran
+        - libblas-dev
+        - liblapack-dev
+        - libopenmpi-dev
+        - openmpi-bin
+
+install:
+- |
+    echo ">>> Building python environment";
+    echo " >> Installing conda";
+    echo "  > Downloading miniconda";
+    wget "https://repo.anaconda.com/miniconda/Miniconda${PY:0:1}-latest-Linux-x86_64.sh" -O miniconda.sh;
+    chmod +x miniconda.sh;
+    echo "  > Installing miniconda";
+    ./miniconda.sh -b  -p $HOME/miniconda;
+    export PATH=$HOME/miniconda/bin:$PATH;
+
+    echo " >> Creating conda environment";
+    conda create --yes -n PY$PY python=$PY;
+    source $HOME/miniconda/bin/activate PY$PY;
+
+    echo " >> Installing non-pure Python dependencies from conda";
+    conda install --yes;
+
+    echo " >> Installing pyOptSparse";
+    echo "  > Cloning pyOptSparse from mdolab";
+    git clone https://github.com/mdolab/pyoptsparse.git;
+    cd pyoptsparse;
+    git checkout tags/v1.2;
+
+    echo "  > Install pyOptSparse";
+    pip install -r requirements.txt;
+    pip install .;
+    cd ..;
+
+    pip install --upgrade pip;
+
+- python -m pip install git+https://github.com/OpenMDAO/dymos.git --user;
+
+- python -m pip install git+https://github.com/OpenMDAO/OpenMDAO.git --user;
+
+script:
+    - testflo -n 1 --timeout=120 --show_skipped;
