@@ -53,7 +53,6 @@ params['alpha']['val'] = alpha
 params['gamma']['val'] = gamma
 params['epsilon']['val'] = epsilon
 params['mu']['val'] = mu
-                 
 
 t_initial_bounds = [0.0, 0.0]
 t_duration_bounds = [t_duration, t_duration]
@@ -103,6 +102,8 @@ fig = make_plots(states, params)
 max_I = np.max(states['I']['result'])
 
 fig.suptitle('peak infection = %2.2f by mitigation between %2.2f and %2.2f' % (max_I, t_on, t_off))
+
+plt.savefig("images/Figure_3.png")
 plt.show()
 
 
