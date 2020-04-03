@@ -39,16 +39,7 @@ install:
     echo " >> Installing non-pure Python dependencies from conda";
     conda install --yes;
 
-    echo " >> Installing pyOptSparse";
-    echo "  > Cloning pyOptSparse from mdolab";
-    git clone https://github.com/mdolab/pyoptsparse.git;
-    cd pyoptsparse;
-    git checkout tags/v1.2;
-
-    echo "  > Install pyOptSparse";
-    pip install -r requirements.txt;
-    pip install .;
-    cd ..;
+    chmod 755 build_pyoptsparse_ipopt.sh; build_pyoptsparse_ipopt.sh
 
     cd pandemic/
 
