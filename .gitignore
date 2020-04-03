@@ -8,3 +8,7 @@ openmdao_checks*
 *.html
 *writeup*
 *.out
+*egg-info*
+util/deriv_*
+util/simple_*
+util/sp.py
