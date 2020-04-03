@@ -72,7 +72,6 @@ Now the modified ODEs of this system can be written as
 
 The addition of `D` and `T_imm.` (immunity loss) will allow for consideration of mortality rates, and the possibilities relating to endemic cycling.
 
-For scaling purposes, the population and state variables were normalized to N = 1.0, so that each state variable represents a percentage of the total population.
 
 Implementation and example
 ===========================
@@ -88,7 +87,7 @@ This corresponds to the problem statement:
     With respect to: 
         - ODE state variables `S`, `I`, `R`, `D`
     Such that:
-        - System begins at `S = 0.99`, `I = 0.01`, `R = 0`, `D = 0`
+        - System begins at `S = 999500`, `I = 500`, `R = 0`, `D = 0`, `N = 1000000`
         - Solution satisfies ODE
 
 When run, this establishes the baseline situation under the given parameters as:
@@ -110,7 +109,7 @@ Following this, we get the formulation:
         - ODE state variables `S`, `I`, `R`, `D`
     Such that:
         - peak infection `I` is below 15% of the total population `N`
-        - System begins at `S = 0.99`, `I = 0.01`, `R = 0`, `D = 0`
+        - System begins at `S = 999500`, `I = 500`, `R = 0`, `D = 0`, `N = 1000000`
         - Solution satisfies ODE
 
 as implemented in the problem definition of `run_min_sigma_sq.py`.
@@ -143,7 +142,7 @@ With this, we get the optimization problem formulation:
         - Quadratic contact control `sigma(t)`, between t=15 and t=75 days
         - ODE state variables `S`, `I`, `R`, `D`
     Such that:
-        - System begins at `S = 0.99`, `I = 0.01`, `R = 0`, `D = 0`
+        - System begins at `S = 999500`, `I = 500`, `R = 0`, `D = 0`, `N = 1000000`
         - Solution satisfies ODE
 
 ![alt text](images/Figure_3.png "Peak minimization")
