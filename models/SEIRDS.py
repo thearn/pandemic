@@ -2,63 +2,56 @@ import numpy as np
 import openmdao.api as om
 try:
     from .ks import KS
-    from .SIR import SIR
+    from .SEIRS import SEIRS
     from .bootstrap_model import generate_phase, make_plots, setup_and_run_phase
 except:
     from ks import KS
-    from SIR import SIR
+    from SEIRS import SEIRS
     from bootstrap_model import generate_phase, make_plots, setup_and_run_phase
 
-class SEIR(SIR):
-    """SEIR epidemiological infection model
-       S (suceptible), E (exposed), I (infected), R (recovered).
-       
-       The new state E represents a non-infectious incubation period determined
-       by rate 'alpha'.
-    """
-    def setup(self):
-        super(SEIR, self).setup()
+class SEIRDS(SEIRS):
 
+    def setup(self):
+        # want the SIR model params to build on
+        super(SEIRDS, self).setup()
         nn = self.options['num_nodes']
 
-        # New states
-        self.add_input('E',
-               val=np.zeros(nn))
+        # New state
+        self.add_input('D',
+                       val=np.zeros(nn))
 
-        # new ROCs
-        self.add_output('Edot', val=np.zeros(nn))
+        # New ROC
+        self.add_output('Ddot', val=np.zeros(nn))
 
-        # New params
-        self.add_input('alpha',
-               val = np.zeros(nn))
+        # New param
+        self.add_input('mu',
+                       val = np.zeros(nn))
 
         arange = np.arange(self.options['num_nodes'], dtype=int)
 
-        self.declare_partials('Edot', ['alpha', 'beta', 'sigma', 'gamma', 'S', 'E', 'I', 'R', 't'], rows=arange, cols=arange)
-        self.declare_partials('Edot', ['a', 't_on', 't_off'])
-
-        self.declare_partials('Idot', ['alpha', 'E'], rows=arange, cols=arange)
+        self.declare_partials('Idot', ['mu'], rows=arange, cols=arange)
+        self.declare_partials('Ddot', ['mu', 'I'], rows=arange, cols=arange)
 
     def compute(self, inputs, outputs):
         # want the baseinfection compute, but not the SIR one
-        super(SEIR, self).compute(inputs, outputs)
+        super(SEIRDS, self).compute(inputs, outputs)
 
         S = inputs['S']
         E = inputs['E']
         I = inputs['I']
         R = inputs['R']
+        D = inputs['D']
         gamma = inputs['gamma']
         alpha = inputs['alpha']
+        mu = inputs['mu']
+        epsilon = inputs['epsilon']
         theta = self.theta
 
-        outputs['Sdot'] = - theta * S * I
-        outputs['Edot'] = theta * S * I - alpha * E
-        outputs['Idot'] = alpha * E - gamma * I
-        outputs['Rdot'] = gamma * I
+        outputs['Idot'] = alpha * E - gamma * I - mu * I
+        outputs['Ddot'] = mu * I
 
     def compute_partials(self, inputs, jacobian):
-        # want the baseinfection jacobian, but not the SIR one
-        super(SEIR, self).compute_partials(inputs, jacobian)
+        super(SEIRDS, self).compute_partials(inputs, jacobian)
 
         S = inputs['S']
         E = inputs['E']
@@ -66,35 +59,17 @@ class SEIR(SIR):
         R = inputs['R']
         gamma = inputs['gamma']
         alpha = inputs['alpha']
+        mu = inputs['mu']
+        epsilon = inputs['epsilon']
         theta = self.theta
 
         # derivatives of the ODE equations of state
-        jacobian['Sdot', 'S'] = - I * theta
-        jacobian['Sdot', 'I'] = - S * theta
-        # cascade the derivatives w.r.t. theta using the chain rule
-        dSdot_dtheta = -I * S
-        self.apply_theta_derivs('Sdot', dSdot_dtheta, jacobian)
 
-        jacobian['Edot', 'S'] = I * theta
-        jacobian['Edot', 'I'] = S * theta
-        jacobian['Edot', 'alpha'] = - E
-        jacobian['Edot', 'E'] = - alpha
-        dEdot_dtheta = S * I
-        self.apply_theta_derivs('Edot', dEdot_dtheta, jacobian)
+        jacobian['Idot', 'I'] = - gamma - mu
+        jacobian['Idot', 'mu'] = - I
 
-        jacobian['Idot', 'alpha'] = E
-        jacobian['Idot', 'E'] = alpha
-        jacobian['Idot', 'gamma'] = - I
-        jacobian['Idot', 'I'] = - gamma
-
-        jacobian['Idot', 'S'] *= 0.0
-        for pname in self.theta_vec_dirs:
-            jacobian['Idot', pname] *= 0.0
-        for pname in self.theta_scalar_dirs:
-            jacobian['Idot', pname] *= 0.0
-
-        jacobian['Rdot', 'gamma'] = I
-        jacobian['Rdot', 'I'] = gamma
+        jacobian['Ddot', 'mu'] = I
+        jacobian['Ddot', 'I'] = mu
 
 if __name__ == '__main__':
     import dymos as dm
@@ -104,27 +79,27 @@ if __name__ == '__main__':
     p = om.Problem()
     p.model = om.Group()
     n = 35
-    p.model.add_subsystem('test', SEIR(num_nodes=n, truncate=False), promotes=['*'])
+    p.model.add_subsystem('test', SEIRDS(num_nodes=n, truncate=False), promotes=['*'])
     p.setup(force_alloc_complex=True)
     np.random.seed(0)
     p['S'] = np.random.uniform(1, 1000, n)
     p['E'] = np.random.uniform(1, 1000, n)
     p['I'] = np.random.uniform(1, 1000, n)
     p['R'] = np.random.uniform(1, 1000, n)
+    p['D'] = np.random.uniform(1, 1000, n)
 
     p['beta'] = np.random.uniform(0, 2, n)
     p['sigma'] = np.random.uniform(0, 2, n)
     p['gamma'] = np.random.uniform(0, 2, n)
-    p['alpha'] = np.random.uniform(0, 2, n)
     p['t'] = np.linspace(0, 100, n)
-    
     p.run_model()
     p.check_partials(compact_print=True, method='cs')
 
-    print()
-    raw = input("Continue with baseline sim run test? (y/n)")
-    if raw != "y":
-        quit()
+    # print()
+    # raw = input("Continue with baseline sim run test? (y/n)")
+    # if raw != "y":
+    #     quit()
+
     # test baseline model
     pop_total = 1.0
     initial_exposure = 0.01 * pop_total
@@ -136,10 +111,15 @@ if __name__ == '__main__':
     #### VECTOR PARAMS
     # baseline contact rate (infectivity)
     beta = 0.25
-    # recovery rate (1/days needed to recover)
-    gamma = 1.0 / 14.0
+    # recovery rate (recovery rate / days needed to resolve infection)
+    gamma = 0.95 / 14.0
     # incubation rate (1/days needed to become infectious)
     alpha = 1.0 / 5.0
+    # immunity loss rate (1/days needed to become susceptible again)
+    epsilon = 1.0 / 300.0
+    # death rate (mortality rate / days average to resolve infection)
+    #   should be complementry to recovery (gamma)
+    mu = 0.05 / 14.0
 
     # set up model states
     states = {'S' : {'name' : 'susceptible', 'rate_source' : 'Sdot', 
@@ -150,10 +130,13 @@ if __name__ == '__main__':
                      'interp_s' : initial_exposure, 'interp_f' : 0.0, 'c' : 'brown'},
               'I' : {'name' : 'infected', 'rate_source' : 'Idot', 
                      'targets' : ['I'], 'defect_scaler' : ds, 
-                     'interp_s' : 0.0, 'interp_f' : pop_total/2, 'c' : 'navy'},
+                     'interp_s' : 0.0, 'interp_f' : pop_total/3, 'c' : 'navy'},
               'R' : {'name' : 'recovered', 'rate_source' : 'Rdot', 
                      'targets' : ['R'], 'defect_scaler' : ds, 
-                     'interp_s' : 0.0, 'interp_f' : pop_total/2, 'c' : 'green'},
+                     'interp_s' : 0.0, 'interp_f' : pop_total/3, 'c' : 'green'},
+              'D' : {'name' : 'died', 'rate_source' : 'Ddot', 
+                     'targets' : ['D'], 'defect_scaler' : ds, 
+                     'interp_s' : 0.0, 'interp_f' : pop_total/3, 'c' : 'red'},
                      }
 
     t_initial_bounds = [0.0, 1.0]
@@ -162,14 +145,18 @@ if __name__ == '__main__':
     # set up model vector params
     params = {'beta' : {'targets' : ['beta'], 'val' : beta},
               'gamma' : {'targets' : ['gamma'], 'val' : gamma},
-              'alpha' : {'targets' : ['alpha'], 'val' : alpha}}
+              'alpha' : {'targets' : ['alpha'], 'val' : alpha},
+              'epsilon' : {'targets' : ['epsilon'], 'val' : epsilon},
+              'mu' : {'targets' : ['mu'], 'val' : mu}}
 
     # set up model scalar params
     s_params = {'t_on' : {'targets' : ['t_on'], 'val' : 10.0},
                 't_off' : {'targets' : ['t_off'], 'val' : 70.0},
                 'a' : {'targets' : ['a'], 'val' : 5.0}}
 
-    p, phase0, traj = generate_phase(SEIR, ns, states, params, s_params, t_initial_bounds, t_duration_bounds, fix_initial=True)
+    p, phase0, traj = generate_phase(SEIRDS, ns, states, params, s_params, 
+                                     t_initial_bounds, t_duration_bounds, 
+                                     fix_initial=True, fix_duration=True)
 
 
     p.driver = om.pyOptSparseDriver()
@@ -184,14 +171,13 @@ if __name__ == '__main__':
     phase0.add_boundary_constraint('I', loc='final', upper=0.01, scaler=1.0)
     
     #phase0.add_control('sigma', targets=['sigma'], lower=0.0, upper=beta, ref=beta)
-    #phase0.add_objective('max_I', scaler=1000.0)
+    #phase0.add_objective('max_I', scaler=1e5)
 
     phase0.add_objective('time', loc='final', scaler=1.0)
 
     phase0.add_timeseries_output('theta')
     
-
-    setup_and_run_phase(states, p, phase0, traj, t_duration_bounds[0])
+    setup_and_run_phase(states, p, phase0, traj, 200.0)
 
     print(states['I']['result'][-1])
     make_plots(states, params)

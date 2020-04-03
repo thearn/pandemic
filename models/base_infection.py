@@ -6,6 +6,7 @@ class BaseInfection(om.ExplicitComponent):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
         self.options.declare('truncate', default=True, types=bool)
+        
     def setup(self):
         nn = self.options['num_nodes']
 
@@ -64,13 +65,12 @@ class BaseInfection(om.ExplicitComponent):
         d_toff = np.exp(-a*(-t + t_off))
 
         if trunc:
-            d_ton[np.where(d_ton > 1e-8)] = 1e-8
-            d_toff[np.where(d_toff > 1e-8)] = 1e-8
+            d_ton[np.where(d_ton > 1e8)] = 1e8
+            d_toff[np.where(d_toff > 1e8)] = 1e8
 
         y = 1 / (1 + d_ton) * 1 / (1 + d_toff) 
 
         self.theta = (beta - sigma)*y + (1 - y) * beta
-
         outputs['sigma_sq'] = sigma**2
 
         outputs['theta'] = self.theta
@@ -84,8 +84,8 @@ class BaseInfection(om.ExplicitComponent):
         d_toff = np.exp(-a*(-t + t_off))
 
         if trunc:
-            d_ton[np.where(d_ton > 1e-8)] = 1e-8
-            d_toff[np.where(d_toff > 1e-8)] = 1e-8
+            d_ton[np.where(d_ton > 1e8)] = 1e8
+            d_toff[np.where(d_toff > 1e8)] = 1e8
 
         jacobian['theta', 'beta'] = 1.0
         jacobian['theta', 'sigma'] = -1/((1 + d_toff)*(1 + d_ton))

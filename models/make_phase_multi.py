@@ -13,7 +13,7 @@ def make_phase(ODEclass, states, params, s_params, t_initial_bounds, t_duration_
 
     phase.set_time_options(initial_bounds=t_initial_bounds,
                            duration_bounds=t_duration_bounds, 
-                           targets=['t'])
+                           targets=['t'], units='d')
 
 
     for state in states:
@@ -125,9 +125,6 @@ quit()
 
 
 ############################################
-
-p.driver.declare_coloring() 
-p.setup(check=True)
 
 p.set_val('traj.phase0.t_initial', 0)
 p.set_val('traj.phase0.t_duration', np.mean(t_duration_bounds))
