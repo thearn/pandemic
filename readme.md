@@ -14,10 +14,15 @@ NOTE: We are by no means infectious disease experts, but rather pracitioners of 
 Installation
 ============
 Requires OpenMDAO 3.0.0 and Dymos 0.15.0.
-Install both by running:
+
+Install both requirements by running:
 ```
-python -m pip install git+https://github.com/OpenMDAO/dymos.git
+pip install -e .
 ```
+in the main directly (where `setup.py` is located).
+
+The examples also make use of `PyOptSparse` and `IPOPT`.
+
 Background
 ===========
 
