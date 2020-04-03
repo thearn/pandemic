@@ -97,6 +97,8 @@ phase0.add_objective('int_sigma', scaler=1.0)
 # record effective contact rate
 phase0.add_timeseries_output('theta')
 
+
+
 setup_and_run_phase(states, p, phase0, traj, t_duration)
 
 # plot all states
@@ -105,6 +107,9 @@ fig = make_plots(states, params)
 max_I = np.max(states['I']['result'])
 
 fig.suptitle('peak infection = %2.2f by mitigation through $\\sigma^2$ minimization' % max_I)
+
+plt.savefig("images/Figure_2.png")
+
 plt.show()
 
 

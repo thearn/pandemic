@@ -43,7 +43,6 @@ p, phase0, traj = generate_phase(SEIRDS, ns, states, params, s_params,
                                  t_initial_bounds, t_duration_bounds, 
                                  fix_initial=True, fix_duration=True)
 
-
 p.driver = om.pyOptSparseDriver()
 p.driver.options['optimizer'] = 'IPOPT'
 p.driver.options['print_results'] = False
@@ -64,7 +63,6 @@ phase0.add_objective('time', loc='final', scaler=1.0)
 
 phase0.add_timeseries_output('theta')
 
-
 setup_and_run_phase(states, p, phase0, traj, 200.0)
 
 # plot all states
@@ -73,6 +71,8 @@ fig = make_plots(states, params)
 max_I = np.max(states['I']['result'])
 
 fig.suptitle('peak infection = %2.2f, no mitigation' % max_I)
+plt.savefig("images/Figure_1.png")
+
 plt.show()
 
 
