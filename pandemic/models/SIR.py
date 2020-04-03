@@ -1,13 +1,9 @@
 import numpy as np
 import openmdao.api as om
-try:
-    from .ks import KS
-    from .base_infection import BaseInfection
-    from .bootstrap_model import generate_phase, make_plots, setup_and_run_phase
-except ImportError:
-    from ks import KS
-    from base_infection import BaseInfection
-    from bootstrap_model import generate_phase, make_plots, setup_and_run_phase
+
+from pandemic.models.ks import KS
+from pandemic.models.base_infection import BaseInfection
+from pandemic.bootstrap_problem import generate_phase, make_plots, setup_and_run_phase
 
 # ============== Default configuration =============
 

@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import openmdao.api as om 
 
-from models.SEIRDS import SEIRDS, states, params, s_params
-from models.bootstrap_model import generate_phase, setup_and_run_phase, make_plots
+from pandemic.models.SEIRDS import SEIRDS, states, params, s_params
+from pandemic.bootstrap_problem import generate_phase, setup_and_run_phase, make_plots
 
 # population
 pop_total = 1.0

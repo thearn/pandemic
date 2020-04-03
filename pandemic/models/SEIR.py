@@ -1,13 +1,9 @@
 import numpy as np
 import openmdao.api as om
-try:
-    from .ks import KS
-    from .SIR import SIR
-    from .bootstrap_model import generate_phase, make_plots, setup_and_run_phase
-except:
-    from ks import KS
-    from SIR import SIR
-    from bootstrap_model import generate_phase, make_plots, setup_and_run_phase
+
+from pandemic.models.ks import KS
+from pandemic.models.SIR import SIR
+from pandemic.bootstrap_problem import generate_phase, make_plots, setup_and_run_phase
 
 # ============== Default configuration =============
 
