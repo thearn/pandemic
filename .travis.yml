@@ -51,6 +51,8 @@ install:
 
 - python -m pip install git+https://github.com/OpenMDAO/testflo.git --user;
 
+- python -m pip install -e .;
+
 script:
     - pwd;
     - ls -ltr;
