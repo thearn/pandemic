@@ -9,6 +9,68 @@ except:
     from SEIRS import SEIRS
     from bootstrap_model import generate_phase, make_plots, setup_and_run_phase
 
+
+# ============== Default configuration =============
+
+# population 
+pop_total = 1.0
+initial_exposure = 0.01 * pop_total
+# model discretization 
+ns = 50
+# defect scaler for model solution
+ds = 1e-2
+
+#### VECTOR PARAMS
+# baseline contact rate (infectivity)
+beta = 0.25
+# recovery rate (recovery rate / days needed to resolve infection)
+gamma = 0.95 / 14.0
+# incubation rate (1/days needed to become infectious)
+alpha = 1.0 / 5.0
+# immunity loss rate (1/days needed to become susceptible again)
+epsilon = 1.0 / 300.0
+# death rate (mortality rate / days average to resolve infection)
+#   should be complementry to recovery (gamma)
+mu = 0.05 / 14.0
+
+# control params for mitigation
+t_on = 10.0 # on time
+t_off = 70.0 # off time
+a = 20.0 # smoothness parameter
+
+# set up model states
+states = {'S' : {'name' : 'susceptible', 'rate_source' : 'Sdot', 
+                 'targets' : ['S'], 'defect_scaler' : ds, 
+                 'interp_s' : pop_total - initial_exposure, 'interp_f' : 0, 'c' : 'orange'},
+          'E' : {'name' : 'exposed', 'rate_source' : 'Edot', 
+                 'targets' : ['E'], 'defect_scaler' : ds, 
+                 'interp_s' : initial_exposure, 'interp_f' : 0.0, 'c' : 'brown'},
+          'I' : {'name' : 'infected', 'rate_source' : 'Idot', 
+                 'targets' : ['I'], 'defect_scaler' : ds, 
+                 'interp_s' : 0.0, 'interp_f' : pop_total/3, 'c' : 'navy'},
+          'R' : {'name' : 'recovered', 'rate_source' : 'Rdot', 
+                 'targets' : ['R'], 'defect_scaler' : ds, 
+                 'interp_s' : 0.0, 'interp_f' : pop_total/3, 'c' : 'green'},
+          'D' : {'name' : 'died', 'rate_source' : 'Ddot', 
+                 'targets' : ['D'], 'defect_scaler' : ds, 
+                 'interp_s' : 0.0, 'interp_f' : pop_total/3, 'c' : 'red'},
+                 }
+
+t_initial_bounds = [0.0, 1.0]
+t_duration_bounds = [200.0, 301.00]
+
+# set up model vector params
+params = {'beta' : {'targets' : ['beta'], 'val' : beta},
+          'gamma' : {'targets' : ['gamma'], 'val' : gamma},
+          'alpha' : {'targets' : ['alpha'], 'val' : alpha},
+          'epsilon' : {'targets' : ['epsilon'], 'val' : epsilon},
+          'mu' : {'targets' : ['mu'], 'val' : mu}}
+
+# set up model scalar params
+s_params = {'t_on' : {'targets' : ['t_on'], 'val' : t_on},
+            't_off' : {'targets' : ['t_off'], 'val' : t_off},
+            'a' : {'targets' : ['a'], 'val' : a}}
+
 class SEIRDS(SEIRS):
 
     def setup(self):
@@ -95,65 +157,12 @@ if __name__ == '__main__':
     p.run_model()
     p.check_partials(compact_print=True, method='cs')
 
-    # print()
-    # raw = input("Continue with baseline sim run test? (y/n)")
-    # if raw != "y":
-    #     quit()
+    print()
+    raw = input("Continue with baseline sim run test? (y/n)")
+    if raw != "y":
+        quit()
 
     # test baseline model
-    pop_total = 1.0
-    initial_exposure = 0.01 * pop_total
-    # model discretization 
-    ns = 50
-    # defect scaler for model solution
-    ds = 1e-2
-
-    #### VECTOR PARAMS
-    # baseline contact rate (infectivity)
-    beta = 0.25
-    # recovery rate (recovery rate / days needed to resolve infection)
-    gamma = 0.95 / 14.0
-    # incubation rate (1/days needed to become infectious)
-    alpha = 1.0 / 5.0
-    # immunity loss rate (1/days needed to become susceptible again)
-    epsilon = 1.0 / 300.0
-    # death rate (mortality rate / days average to resolve infection)
-    #   should be complementry to recovery (gamma)
-    mu = 0.05 / 14.0
-
-    # set up model states
-    states = {'S' : {'name' : 'susceptible', 'rate_source' : 'Sdot', 
-                     'targets' : ['S'], 'defect_scaler' : ds, 
-                     'interp_s' : pop_total - initial_exposure, 'interp_f' : 0, 'c' : 'orange'},
-              'E' : {'name' : 'exposed', 'rate_source' : 'Edot', 
-                     'targets' : ['E'], 'defect_scaler' : ds, 
-                     'interp_s' : initial_exposure, 'interp_f' : 0.0, 'c' : 'brown'},
-              'I' : {'name' : 'infected', 'rate_source' : 'Idot', 
-                     'targets' : ['I'], 'defect_scaler' : ds, 
-                     'interp_s' : 0.0, 'interp_f' : pop_total/3, 'c' : 'navy'},
-              'R' : {'name' : 'recovered', 'rate_source' : 'Rdot', 
-                     'targets' : ['R'], 'defect_scaler' : ds, 
-                     'interp_s' : 0.0, 'interp_f' : pop_total/3, 'c' : 'green'},
-              'D' : {'name' : 'died', 'rate_source' : 'Ddot', 
-                     'targets' : ['D'], 'defect_scaler' : ds, 
-                     'interp_s' : 0.0, 'interp_f' : pop_total/3, 'c' : 'red'},
-                     }
-
-    t_initial_bounds = [0.0, 1.0]
-    t_duration_bounds = [200.0, 301.00]
-
-    # set up model vector params
-    params = {'beta' : {'targets' : ['beta'], 'val' : beta},
-              'gamma' : {'targets' : ['gamma'], 'val' : gamma},
-              'alpha' : {'targets' : ['alpha'], 'val' : alpha},
-              'epsilon' : {'targets' : ['epsilon'], 'val' : epsilon},
-              'mu' : {'targets' : ['mu'], 'val' : mu}}
-
-    # set up model scalar params
-    s_params = {'t_on' : {'targets' : ['t_on'], 'val' : 10.0},
-                't_off' : {'targets' : ['t_off'], 'val' : 70.0},
-                'a' : {'targets' : ['a'], 'val' : 5.0}}
-
     p, phase0, traj = generate_phase(SEIRDS, ns, states, params, s_params, 
                                      t_initial_bounds, t_duration_bounds, 
                                      fix_initial=True, fix_duration=True)
@@ -181,3 +190,4 @@ if __name__ == '__main__':
 
     print(states['I']['result'][-1])
     make_plots(states, params)
+    plt.show()

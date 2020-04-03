@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import openmdao.api as om 
 
-from models import SEIRDS # SIR, SEIR, SEIRS
+from models.SEIRDS import SEIRDS, states, params, s_params
 from models.bootstrap_model import generate_phase, setup_and_run_phase, make_plots
 
 # test baseline model
@@ -27,34 +27,19 @@ epsilon = 1.0 / 300.0
 mu = 0.05 / 14.0
 
 # set up model states
-states = {'S' : {'name' : 'susceptible', 'rate_source' : 'Sdot', 
-                 'targets' : ['S'], 'defect_scaler' : ds, 
-                 'interp_s' : pop_total - initial_exposure, 'interp_f' : 0, 'c' : 'orange'},
-          'E' : {'name' : 'exposed', 'rate_source' : 'Edot', 
-                 'targets' : ['E'], 'defect_scaler' : ds, 
-                 'interp_s' : initial_exposure, 'interp_f' : 0.0, 'c' : 'brown'},
-          'I' : {'name' : 'infected', 'rate_source' : 'Idot', 
-                 'targets' : ['I'], 'defect_scaler' : ds, 
-                 'interp_s' : 0.0, 'interp_f' : pop_total/3, 'c' : 'navy'},
-          'R' : {'name' : 'recovered', 'rate_source' : 'Rdot', 
-                 'targets' : ['R'], 'defect_scaler' : ds, 
-                 'interp_s' : 0.0, 'interp_f' : pop_total/3, 'c' : 'green'},
-          'D' : {'name' : 'died', 'rate_source' : 'Ddot', 
-                 'targets' : ['D'], 'defect_scaler' : ds, 
-                 'interp_s' : 0.0, 'interp_f' : pop_total/3, 'c' : 'red'},
-                 }
+for state in states:
+    states[state]['ds'] = ds
+
+params['beta']['val'] = beta
+params['alpha']['val'] = alpha
+params['gamma']['val'] = gamma
+params['epsilon']['val'] = epsilon
+params['mu']['val'] = mu
 
 t_initial_bounds = [0.0, 1.0]
 t_duration_bounds = [200.0, 301.00]
 
-# set up model vector params
-params = {'beta' : {'targets' : ['beta'], 'val' : beta},
-          'gamma' : {'targets' : ['gamma'], 'val' : gamma},
-          'alpha' : {'targets' : ['alpha'], 'val' : alpha},
-          'epsilon' : {'targets' : ['epsilon'], 'val' : epsilon},
-          'mu' : {'targets' : ['mu'], 'val' : mu}}
-
-p, phase0, traj = generate_phase(SEIRDS, ns, states, params, {}, 
+p, phase0, traj = generate_phase(SEIRDS, ns, states, params, s_params, 
                                  t_initial_bounds, t_duration_bounds, 
                                  fix_initial=True, fix_duration=True)
 
@@ -80,5 +65,12 @@ phase0.add_timeseries_output('theta')
 
 setup_and_run_phase(states, p, phase0, traj, 200.0)
 
-print(states['I']['result'][-1])
-make_plots(states, params)
+# plot all states
+fig = make_plots(states, params)
+
+max_I = np.max(states['I']['result'])
+
+fig.suptitle('peak infection = %2.2f, no mitigation' % max_I)
+plt.show()
+
+

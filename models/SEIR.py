@@ -9,6 +9,51 @@ except:
     from SIR import SIR
     from bootstrap_model import generate_phase, make_plots, setup_and_run_phase
 
+# ============== Default configuration =============
+
+pop_total = 1.0
+initial_exposure = 0.01 * pop_total
+# model discretization 
+ns = 50
+# defect scaler for model solution
+ds = 1e-2
+
+#### VECTOR PARAMS
+# baseline contact rate (infectivity)
+beta = 0.25
+# recovery rate (1/days needed to recover)
+gamma = 1.0 / 14.0
+# incubation rate (1/days needed to become infectious)
+alpha = 1.0 / 5.0
+
+# set up model states
+states = {'S' : {'name' : 'susceptible', 'rate_source' : 'Sdot', 
+                 'targets' : ['S'], 'defect_scaler' : ds, 
+                 'interp_s' : pop_total - initial_exposure, 'interp_f' : 0, 'c' : 'orange'},
+          'E' : {'name' : 'exposed', 'rate_source' : 'Edot', 
+                 'targets' : ['E'], 'defect_scaler' : ds, 
+                 'interp_s' : initial_exposure, 'interp_f' : 0.0, 'c' : 'brown'},
+          'I' : {'name' : 'infected', 'rate_source' : 'Idot', 
+                 'targets' : ['I'], 'defect_scaler' : ds, 
+                 'interp_s' : 0.0, 'interp_f' : pop_total/2, 'c' : 'navy'},
+          'R' : {'name' : 'recovered', 'rate_source' : 'Rdot', 
+                 'targets' : ['R'], 'defect_scaler' : ds, 
+                 'interp_s' : 0.0, 'interp_f' : pop_total/2, 'c' : 'green'},
+                 }
+
+t_initial_bounds = [0.0, 1.0]
+t_duration_bounds = [200.0, 301.00]
+
+# set up model vector params
+params = {'beta' : {'targets' : ['beta'], 'val' : beta},
+          'gamma' : {'targets' : ['gamma'], 'val' : gamma},
+          'alpha' : {'targets' : ['alpha'], 'val' : alpha}}
+
+# set up model scalar params
+s_params = {'t_on' : {'targets' : ['t_on'], 'val' : 10.0},
+            't_off' : {'targets' : ['t_off'], 'val' : 70.0},
+            'a' : {'targets' : ['a'], 'val' : 5.0}}
+
 class SEIR(SIR):
     """SEIR epidemiological infection model
        S (suceptible), E (exposed), I (infected), R (recovered).
@@ -51,14 +96,12 @@ class SEIR(SIR):
         alpha = inputs['alpha']
         theta = self.theta
 
-        outputs['Sdot'] = - theta * S * I
         outputs['Edot'] = theta * S * I - alpha * E
         outputs['Idot'] = alpha * E - gamma * I
-        outputs['Rdot'] = gamma * I
 
     def compute_partials(self, inputs, jacobian):
         # want the baseinfection jacobian, but not the SIR one
-        super(SEIR, self).compute_partials(inputs, jacobian)
+        super(SIR, self).compute_partials(inputs, jacobian)
 
         S = inputs['S']
         E = inputs['E']
@@ -87,14 +130,10 @@ class SEIR(SIR):
         jacobian['Idot', 'gamma'] = - I
         jacobian['Idot', 'I'] = - gamma
 
-        jacobian['Idot', 'S'] *= 0.0
-        for pname in self.theta_vec_dirs:
-            jacobian['Idot', pname] *= 0.0
-        for pname in self.theta_scalar_dirs:
-            jacobian['Idot', pname] *= 0.0
-
         jacobian['Rdot', 'gamma'] = I
         jacobian['Rdot', 'I'] = gamma
+
+        jacobian['max_I', 'I'] = self.dagg_i
 
 if __name__ == '__main__':
     import dymos as dm
@@ -126,49 +165,6 @@ if __name__ == '__main__':
     if raw != "y":
         quit()
     # test baseline model
-    pop_total = 1.0
-    initial_exposure = 0.01 * pop_total
-    # model discretization 
-    ns = 50
-    # defect scaler for model solution
-    ds = 1e-2
-
-    #### VECTOR PARAMS
-    # baseline contact rate (infectivity)
-    beta = 0.25
-    # recovery rate (1/days needed to recover)
-    gamma = 1.0 / 14.0
-    # incubation rate (1/days needed to become infectious)
-    alpha = 1.0 / 5.0
-
-    # set up model states
-    states = {'S' : {'name' : 'susceptible', 'rate_source' : 'Sdot', 
-                     'targets' : ['S'], 'defect_scaler' : ds, 
-                     'interp_s' : pop_total - initial_exposure, 'interp_f' : 0, 'c' : 'orange'},
-              'E' : {'name' : 'exposed', 'rate_source' : 'Edot', 
-                     'targets' : ['E'], 'defect_scaler' : ds, 
-                     'interp_s' : initial_exposure, 'interp_f' : 0.0, 'c' : 'brown'},
-              'I' : {'name' : 'infected', 'rate_source' : 'Idot', 
-                     'targets' : ['I'], 'defect_scaler' : ds, 
-                     'interp_s' : 0.0, 'interp_f' : pop_total/2, 'c' : 'navy'},
-              'R' : {'name' : 'recovered', 'rate_source' : 'Rdot', 
-                     'targets' : ['R'], 'defect_scaler' : ds, 
-                     'interp_s' : 0.0, 'interp_f' : pop_total/2, 'c' : 'green'},
-                     }
-
-    t_initial_bounds = [0.0, 1.0]
-    t_duration_bounds = [200.0, 301.00]
-
-    # set up model vector params
-    params = {'beta' : {'targets' : ['beta'], 'val' : beta},
-              'gamma' : {'targets' : ['gamma'], 'val' : gamma},
-              'alpha' : {'targets' : ['alpha'], 'val' : alpha}}
-
-    # set up model scalar params
-    s_params = {'t_on' : {'targets' : ['t_on'], 'val' : 10.0},
-                't_off' : {'targets' : ['t_off'], 'val' : 70.0},
-                'a' : {'targets' : ['a'], 'val' : 5.0}}
-
     p, phase0, traj = generate_phase(SEIR, ns, states, params, s_params, t_initial_bounds, t_duration_bounds, fix_initial=True)
 
 
@@ -183,9 +179,6 @@ if __name__ == '__main__':
 
     phase0.add_boundary_constraint('I', loc='final', upper=0.01, scaler=1.0)
     
-    #phase0.add_control('sigma', targets=['sigma'], lower=0.0, upper=beta, ref=beta)
-    #phase0.add_objective('max_I', scaler=1000.0)
-
     phase0.add_objective('time', loc='final', scaler=1.0)
 
     phase0.add_timeseries_output('theta')
@@ -193,5 +186,5 @@ if __name__ == '__main__':
 
     setup_and_run_phase(states, p, phase0, traj, t_duration_bounds[0])
 
-    print(states['I']['result'][-1])
     make_plots(states, params)
+    plt.show()

@@ -78,15 +78,14 @@ def setup_and_run_phase(states, p, phase0, traj, t_duration):
     states['t'] = t
     states['theta'] = theta
 
-def make_plots(states, params):
+def make_plots(states, params, ignore = ['t', 'theta', 'int_sigma']):
     fig = plt.figure(figsize=(10, 5))
     plt.subplot(211)
-    plt.title('baseline simulation - no mitigation')
     t = states['t']
     beta = params['beta']['val']
     theta = states['theta']
     for state in states:
-        if state == 't' or state == 'theta':
+        if state in ignore:
             continue
         plt.plot(t, states[state]['result'], states[state]['c'], lw=2, label=states[state]['name'])
     plt.xlabel('days')
@@ -96,7 +95,8 @@ def make_plots(states, params):
     plt.plot(t, len(t)*[beta], lw=2, label='$\\beta$')
     plt.plot(t, theta, lw=2, label='$\\theta$(t)')
     plt.legend()
-    plt.show()
+    #plt.show()
+    return fig
 
 
 

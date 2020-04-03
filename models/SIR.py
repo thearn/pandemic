@@ -9,6 +9,46 @@ except ImportError:
     from base_infection import BaseInfection
     from bootstrap_model import generate_phase, make_plots, setup_and_run_phase
 
+# ============== Default configuration =============
+
+pop_total = 1.0
+initial_exposure = 0.01 * pop_total
+# model discretization 
+ns = 50
+# defect scaler for model solution
+ds = 1e-2
+
+#### VECTOR PARAMS
+# baseline contact rate (infectivity)
+beta = 0.25
+# recovery rate (1/days needed to recover)
+gamma = 1.0 / 14.0
+
+# set up model states
+states = {'S' : {'name' : 'susceptible', 'rate_source' : 'Sdot', 
+                 'targets' : ['S'], 'defect_scaler' : ds, 
+                 'interp_s' : pop_total - initial_exposure, 'interp_f' : 0, 'c' : 'orange'},
+          'I' : {'name' : 'infected', 'rate_source' : 'Idot', 
+                 'targets' : ['I'], 'defect_scaler' : ds, 
+                 'interp_s' : initial_exposure, 'interp_f' : pop_total/2, 'c' : 'navy'},
+          'R' : {'name' : 'recovered', 'rate_source' : 'Rdot', 
+                 'targets' : ['R'], 'defect_scaler' : ds, 
+                 'interp_s' : 0.0, 'interp_f' : pop_total/2, 'c' : 'green'},
+                 }
+
+t_initial_bounds = [0.0, 1.0]
+t_duration_bounds = [200.0, 301.00]
+
+# set up model vector params
+params = {'beta' : {'targets' : ['beta'], 'val' : beta},
+          'gamma' : {'targets' : ['gamma'], 'val' : gamma}}
+
+# set up model scalar params
+s_params = {'t_on' : {'targets' : ['t_on'], 'val' : 10.0},
+            't_off' : {'targets' : ['t_off'], 'val' : 70.0},
+            'a' : {'targets' : ['a'], 'val' : 5.0}}
+
+
 class SIR(BaseInfection):
     """Basic epidemiological infection model
        S (suceptible), I (infected), R (recovered).
@@ -125,44 +165,6 @@ if __name__ == '__main__':
     if raw != "y":
         quit()
 
-    # test baseline model
-    pop_total = 1.0
-    initial_exposure = 0.01 * pop_total
-    # model discretization 
-    ns = 50
-    # defect scaler for model solution
-    ds = 1e-2
-
-    #### VECTOR PARAMS
-    # baseline contact rate (infectivity)
-    beta = 0.25
-    # recovery rate (1/days needed to recover)
-    gamma = 1.0 / 14.0
-
-    # set up model states
-    states = {'S' : {'name' : 'susceptible', 'rate_source' : 'Sdot', 
-                     'targets' : ['S'], 'defect_scaler' : ds, 
-                     'interp_s' : pop_total - initial_exposure, 'interp_f' : 0, 'c' : 'orange'},
-              'I' : {'name' : 'infected', 'rate_source' : 'Idot', 
-                     'targets' : ['I'], 'defect_scaler' : ds, 
-                     'interp_s' : initial_exposure, 'interp_f' : pop_total/2, 'c' : 'navy'},
-              'R' : {'name' : 'recovered', 'rate_source' : 'Rdot', 
-                     'targets' : ['R'], 'defect_scaler' : ds, 
-                     'interp_s' : 0.0, 'interp_f' : pop_total/2, 'c' : 'green'},
-                     }
-
-    t_initial_bounds = [0.0, 1.0]
-    t_duration_bounds = [200.0, 301.00]
-
-    # set up model vector params
-    params = {'beta' : {'targets' : ['beta'], 'val' : beta},
-              'gamma' : {'targets' : ['gamma'], 'val' : gamma}}
-
-    # set up model scalar params
-    s_params = {'t_on' : {'targets' : ['t_on'], 'val' : 10.0},
-                't_off' : {'targets' : ['t_off'], 'val' : 70.0},
-                'a' : {'targets' : ['a'], 'val' : 5.0}}
-
     p, phase0, traj = generate_phase(SIR, ns, states, params, s_params, t_initial_bounds, t_duration_bounds, fix_initial=True)
 
 
@@ -175,17 +177,14 @@ if __name__ == '__main__':
     p.driver.opt_settings['linear_solver'] = 'mumps'
     p.driver.opt_settings['max_iter'] = 500
 
-    phase0.add_boundary_constraint('I', loc='final', upper=0.01, scaler=1.0)
+    phase0.add_boundary_constraint('I', loc='final', upper=0.05, scaler=1.0)
     
-    #phase0.add_control('sigma', targets=['sigma'], lower=0.0, upper=beta, ref=beta)
-    #phase0.add_objective('max_I', scaler=1000.0)
-
     phase0.add_objective('time', loc='final', scaler=1.0)
 
     phase0.add_timeseries_output('theta')
     
-
     setup_and_run_phase(states, p, phase0, traj, t_duration_bounds[0])
 
-    print(states['I']['result'][-1])
     make_plots(states, params)
+
+    plt.show()
