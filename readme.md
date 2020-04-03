@@ -94,10 +94,10 @@ When run, this establishes the baseline situation under the given parameters as:
 
 ![alt text](images/Figure_1.png "No mitigation")
 
-This indicates a peak infection rate of over half the total population under consideration, around time `t = 28 (days)`.
+This indicates a peak infection rate of about 35% of the total population under consideration, around time `t = 28 (days)`.
 
 Now, allowing for dynamic optimization representing social distancing implementation, let's optimize the scenario with respect to `sigma(t)` in order to flatten the infection curve below 15% of the population total at peak. Specifically, let's aim to find (in some sense) the least amount of mitigation necessary to reach this target. To do this, we can minimize the sum of the square of the mitigation vector `sigma(t)`.
-We also specify that mitigation must begin only after `t_0 = 10.0`, to study the effect of lagging the mitigation policy. For `theta(t)`, we set a smoothness constant of `a = 10.0`
+We also specify that mitigation must begin only after `t_0 = 15.0`, to study the effect of lagging the mitigation policy. For `theta(t)`, we set a smoothness constant of `a = 10.0`
 
 
 Following this, we get the formulation:
@@ -105,7 +105,7 @@ Following this, we get the formulation:
     Minimize: 
         - Sum of `sigma(t)^2`
     With respect to: 
-        -`sigma(t)`
+        -`sigma(t)`, after t=15 days
         - ODE state variables `S`, `I`, `R`, `D`
     Such that:
         - peak infection `I` is below 15% of the total population `N`
@@ -122,7 +122,7 @@ indicating successful flattening of the infection curve below the specified targ
 Example 2: direct peak curve minimization
 ==========================================
 
-Next, consider a problem formulation where we seek to directly minimize the peak value of the infection curve, with mitigation `sigma(t)` applied strictly between two time points `t_on` and `t_off`. We'll limit the control to be a quadratic function of time, limited between days `t = 15` and `t = 55` of the simulation. Outside those times, the effective contact rate will default to the natural value for the disease & population.
+Next, consider a problem formulation where we seek to directly minimize the peak value of the infection curve, with mitigation `sigma(t)` applied strictly between two time points `t_on` and `t_off`. We'll limit the control to be a quadratic function of time, limited between days `t = 15` and `t = 75` of the simulation. Outside those times, the effective contact rate will default to the natural value for the disease & population.
 
 First, we can adapt the above definition of effective time-constrained contact rate `theta(t)` to include the `t_off` parameter, by expressing the joint indicator function of the conditions `t > t_on` and `t < t_off` as the product of two smooth sigmoidal estimates. This provides a new expression for `theta(t)` as a function of `beta`, `sigma(t)`, `t_on`, and `t_off`:
 
@@ -139,7 +139,7 @@ With this, we get the optimization problem formulation:
     Minimize: 
         - Infection curve peak estimate KS(I)
     With respect to: 
-        - Quadratic contact control `sigma(t)`, between t=15 and t=55 days
+        - Quadratic contact control `sigma(t)`, between t=15 and t=75 days
         - ODE state variables `S`, `I`, `R`, `D`
     Such that:
         - System begins at `S = 999500`, `I = 500`, `R = 0`, `D = 0`, `N = 1000000`
