@@ -39,7 +39,7 @@ install:
     echo " >> Installing non-pure Python dependencies from conda";
     conda install --yes;
 
-    chmod 755 ./build_pyoptsparse_ipopt.sh; ./build_pyoptsparse_ipopt.sh
+    chmod 755 build_pyoptsparse_ipopt.sh; build_pyoptsparse_ipopt.sh
 
     cd pandemic/
 
