@@ -73,16 +73,17 @@ p, phase0, traj = generate_phase(SEIRDS, ns, states, params, s_params,
 
 p.driver = om.pyOptSparseDriver()
 p.driver.options['optimizer'] = 'IPOPT'
+p.driver.options['print_results'] = False
 p.driver.opt_settings['hessian_approximation'] = 'limited-memory'
 # p.driver.opt_settings['mu_init'] = 1.0E-2
 p.driver.opt_settings['nlp_scaling_method'] = 'gradient-based'
 p.driver.opt_settings['print_level'] = 5
 p.driver.opt_settings['linear_solver'] = 'mumps'
 p.driver.opt_settings['max_iter'] = 500
+p.driver.opt_settings['tol'] = 1e-9
 
 # p.driver.options['optimizer'] = 'SNOPT'
 # p.driver.opt_settings['iSumm'] = 6
-
 
 # put a limit on max_I of 0.15
 phase0.add_path_constraint('I', upper = 0.15)

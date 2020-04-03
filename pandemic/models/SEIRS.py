@@ -145,6 +145,8 @@ if __name__ == '__main__':
 
     p.driver = om.pyOptSparseDriver()
     p.driver.options['optimizer'] = 'IPOPT'
+    p.driver.options['print_results'] = False
+
     p.driver.opt_settings['hessian_approximation'] = 'limited-memory'
     # p.driver.opt_settings['mu_init'] = 1.0E-2
     p.driver.opt_settings['nlp_scaling_method'] = 'gradient-based'

@@ -133,25 +133,7 @@ if __name__ == '__main__':
     import dymos as dm
     import matplotlib.pyplot as plt
 
-    # test derivatives
-    p = om.Problem()
-    p.model = om.Group()
-    n = 35
-    p.model.add_subsystem('test', SEIRDS(num_nodes=n, truncate=False), promotes=['*'])
-    p.setup(force_alloc_complex=True)
-    np.random.seed(0)
-    p['S'] = np.random.uniform(1, 1000, n)
-    p['E'] = np.random.uniform(1, 1000, n)
-    p['I'] = np.random.uniform(1, 1000, n)
-    p['R'] = np.random.uniform(1, 1000, n)
-    p['D'] = np.random.uniform(1, 1000, n)
 
-    p['beta'] = np.random.uniform(0, 2, n)
-    p['sigma'] = np.random.uniform(0, 2, n)
-    p['gamma'] = np.random.uniform(0, 2, n)
-    p['t'] = np.linspace(0, 100, n)
-    p.run_model()
-    p.check_partials(compact_print=True, method='cs')
 
     print()
     raw = input("Continue with baseline sim run test? (y/n)")
@@ -166,6 +148,8 @@ if __name__ == '__main__':
 
     p.driver = om.pyOptSparseDriver()
     p.driver.options['optimizer'] = 'IPOPT'
+    p.driver.options['print_results'] = False
+
     p.driver.opt_settings['hessian_approximation'] = 'limited-memory'
     # p.driver.opt_settings['mu_init'] = 1.0E-2
     p.driver.opt_settings['nlp_scaling_method'] = 'gradient-based'
