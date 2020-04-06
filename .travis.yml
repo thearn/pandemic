@@ -37,7 +37,7 @@ install:
     source $HOME/miniconda/bin/activate PY$PY;
 
     echo " >> Installing non-pure Python dependencies from conda";
-    conda install --yes numpy=$NUMPY scipy=$SCIPY cython swig;
+    conda install --yes numpy=$NUMPY scipy=$SCIPY cython swig matplotlib;
 
     cd pandemic/
     ls -ltr
