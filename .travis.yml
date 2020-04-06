@@ -41,7 +41,7 @@ install:
 
     cd pandemic/
     ls -ltr
-    chmod 755 build_pyoptsparse_ipopt.sh; build_pyoptsparse_ipopt.sh
+    chmod 755 ./build_pyoptsparse_ipopt.sh; ./build_pyoptsparse_ipopt.sh
 
     pip install --upgrade pip;
 
