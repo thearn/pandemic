@@ -42,7 +42,7 @@ NOTES:
 
     If PARDISO is selected as the linear solver, the Intel compiler suite
     with MKL must be available.
-    
+
     Examples:
       $0
       $0 -l pardiso
