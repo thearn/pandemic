@@ -55,4 +55,5 @@ script:
     - pwd;
     - ls -ltr;
     - cd pandemic/;
+    - export LD_LIBRARY_PATH=/home/travis/ipopt/lib
     - testflo -n 1 --timeout=120 --show_skipped;
