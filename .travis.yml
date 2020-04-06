@@ -37,20 +37,11 @@ install:
     source $HOME/miniconda/bin/activate PY$PY;
 
     echo " >> Installing non-pure Python dependencies from conda";
-    conda install --yes;
+    conda install --yes numpy=$NUMPY scipy=$SCIPY cython swig matplotlib;
 
-    echo " >> Installing pyOptSparse";
-    echo "  > Cloning pyOptSparse from mdolab";
-    git clone https://github.com/mdolab/pyoptsparse.git;
-    cd pyoptsparse;
-    git checkout tags/v1.2;
-
-    echo "  > Install pyOptSparse";
-    pip install -r requirements.txt;
-    pip install .;
-    cd ..;
-
-    cd pandemic/
+    cd pandemic/;
+    ls -ltr;
+    chmod 755 ./build_pyoptsparse_ipopt.sh; ./build_pyoptsparse_ipopt.sh;
 
     pip install --upgrade pip;
 
@@ -63,4 +54,6 @@ install:
 script:
     - pwd;
     - ls -ltr;
+    - cd pandemic/;
+    - export LD_LIBRARY_PATH=/home/travis/ipopt/lib
     - testflo -n 1 --timeout=120 --show_skipped;
