@@ -54,4 +54,5 @@ install:
 script:
     - pwd;
     - ls -ltr;
+    - cd pandemic/;
     - testflo -n 1 --timeout=120 --show_skipped;
